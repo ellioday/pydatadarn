@@ -672,24 +672,42 @@ class GridData():
 		#calculate colatitudes
 		self.mcolats = 90-self.mlats	
 		
-		if get_rad_azms:
-			self.rad_azms = np.empty(len(self.mlats))
-			for i in range(len(self.rad_azms)):
-				#get radar coordinates in aacgm
-				sname = self.stations[i]
-				radar_lat = self.station_metadata[sname].lat
-				radar_lon = self.station_metadata[sname].lon
-				dtime = self.dtimes[i]
-				radar_mlat, radar_mlon = tools.geo_to_aacgm(radar_lat, radar_lon, dtime)
-				
-				#get vector position and azimuth
-				vec_lat = self.mlats[i]
-				vec_lon = self.mlons[i]
-				vec_azi = np.deg2rad(self.kvecs[i])
-				
-				#convert vec_azm to radar_azm
-				radar_azi = tools.get_radar_azi(radar_mlat, radar_mlon, vec_lat, vec_lon, vec_azi)
-				self.rad_azms = np.rad2deg(radar_azi)
+		#calculate vector azimuths from kvector
+		#(-ve vec_azms are east look, +ve vec_azms are west look)
+		#then use los_v sign to denote direction of flow, -ve los_v = towards
+		#radar
+		self.vec_azms = np.array(self.kvecs)
+		for i in range(len(self.vec_azms)):
+			look_direction = self.station_metadata[self.stations[i]].look
+			vec_azm = self.vec_azms[i]
+			if look_direction == "E":
+					if vec_azm > 0:
+						self.vec_azms[i] -= 180
+			elif look_direction == "W":	
+					if vec_azm < 0:
+						self.vec_azms[i] += 180	
+						
+		#restrict azimuths between -90 and 90 degrees
+		self.vec_azms = tools.sin9090(self.vec_azms)
+		
+# 		if get_rad_azms:
+# 			self.rad_azms = np.empty(len(self.mlats))
+# 			for i in range(len(self.rad_azms)):
+# 				#get radar coordinates in aacgm
+# 				sname = self.stations[i]
+# 				radar_lat = self.station_metadata[sname].lat
+# 				radar_lon = self.station_metadata[sname].lon
+# 				dtime = self.dtimes[i]
+# 				radar_mlat, radar_mlon = tools.geo_to_aacgm(radar_lat, radar_lon, dtime)
+# 				
+# 				#get vector position and azimuth
+# 				vec_lat = self.mlats[i]
+# 				vec_lon = self.mlons[i]
+# 				vec_azi = np.deg2rad(self.kvecs[i])
+# 				
+# 				#convert vec_azm to radar_azm
+# 				radar_azi = tools.get_radar_azi(radar_mlat, radar_mlon, vec_lat, vec_lon, vec_azi)
+# 				self.rad_azms = np.rad2deg(radar_azi)
 		
 		return
 	
@@ -717,6 +735,7 @@ class GridData():
 		data_dict["los_e"] = self.los_e[indexes]
 		data_dict["times"] = self.times[indexes]
 		data_dict["dtimes"] = self.dtimes[indexes]
+		data_dict["vec_azms"] = self.vec_azms[indexes]
 		
 		return data_dict
 	
@@ -862,7 +881,7 @@ class GridData():
 	
 		return
 	
-	def los_fit(self, stations, time, mcolat_range=False, resolution=100, plot=False, use_radar_azi=False):
+	def los_fit(self, stations, time, resolution=100, mcolat_range=False, plot=False, use_radar_azi=False):
 		
 		"""
 		uses least square fitting to determine the longitudinal flow velocity
@@ -876,11 +895,20 @@ class GridData():
 			station(s)
 		time: string
 			time to plot data for (in format "YYYY/MM/DD HH:mm/ss")
+		resolution: int
+			number of x points to use in the line of sight model
 		mcolat_range: array of float
 			array containing either one magnetic colatitude [mcolat] to 
 			retrieve data for or a low and high magnetic colatitude 
 			[mcolat_low, mcolat_high] to limit the data. 
 			default = False (no limit)
+		plot: Bool
+			set whether to plot the los fit
+		use_radar_azi: Bool
+			set whether to use radar azimuth (default False). If set to False
+			then vector azimuth will be used for the fit
+			*NOTE* vector azimuth will provide most reliable results for a
+			single latitude only.
 		"""
 		
 		#get data for specified stations
@@ -916,23 +944,6 @@ class GridData():
 				raise Exception("mcolat range must be either 1 or 2")
 			for key in self.station_data:
 				self.station_data[key] = self.station_data[key][mcolat_indices]
-			
-		#make sure kvecs are consistent between look directions
-		#(aka -ve kvecs are east look, +ve kvecs are west look)
-		#use los_v sign to denote direction of flow, negative 
-		#velocities = towards radar station.
-		for i in range(len(self.station_data["kvecs"])):
-			look = self.station_metadata[self.station_data["station"][i]].look
-			kvec = self.station_data["kvecs"][i]
-			if look == "E":
-					if kvec > 0:
-						self.station_data["kvecs"][i] -= 180
-			elif look == "W":	
-					if kvec < 0:
-						self.station_data["kvecs"][i] += 180	
-	
-		#restrict domain between -90 and 90 degrees
-		self.station_data["kvecs"] = tools.sin9090(self.station_data["kvecs"])
 		
 		#if there is no data or not enough data (need at least equal to the 
 		#number of fitting parameters (3))
@@ -972,7 +983,7 @@ class GridData():
 		
 		#params = median velocity, amplitude, phase shift
 		params = [A, B, phi]
-		self.w, _ = opt.curve_fit(tools.sin, np.deg2rad(self.station_data["kvecs"]), 
+		self.w, _ = opt.curve_fit(tools.sin, np.deg2rad(self.station_data["vec_azms"]), 
 						  self.station_data["los_vs"], params, maxfev=50000)
 		#print("Initial parameters = {}".format(params))
 		#print("Estimated parameters = {}\n".format(self.w))
@@ -987,7 +998,7 @@ class GridData():
 			
 			#make plot of los_v over angle
 			fig, ax = plt.subplots(1, 1, figsize=[6, 6])		
-			ax.scatter(self.station_data["kvecs"][station0_indexes], 
+			ax.scatter(self.station_data["vec_azms"][station0_indexes], 
 				 self.station_data["los_vs"][station0_indexes], marker="+",
 				 label = self.station_data["station"][station0_indexes][0])
 			ax.plot(x_series, trial, "--", color="k", label="initial fit")
@@ -1009,7 +1020,7 @@ class GridData():
 			
 			#if there was a second station plot that
 			if len(stations) == 2:
-				ax.scatter(self.station_data["kvecs"][station1_indexes], 
+				ax.scatter(self.station_data["vec_azms"][station1_indexes], 
 					 self.station_data["los_vs"][station1_indexes], marker="+",
 					 label = self.station_data["station"][station1_indexes][0])
 				
