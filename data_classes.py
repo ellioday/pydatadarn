@@ -690,24 +690,26 @@ class GridData():
 		#restrict azimuths between -90 and 90 degrees
 		self.vec_azms = tools.sin9090(self.vec_azms)
 		
-# 		if get_rad_azms:
-# 			self.rad_azms = np.empty(len(self.mlats))
-# 			for i in range(len(self.rad_azms)):
-# 				#get radar coordinates in aacgm
-# 				sname = self.stations[i]
-# 				radar_lat = self.station_metadata[sname].lat
-# 				radar_lon = self.station_metadata[sname].lon
-# 				dtime = self.dtimes[i]
-# 				radar_mlat, radar_mlon = tools.geo_to_aacgm(radar_lat, radar_lon, dtime)
-# 				
-# 				#get vector position and azimuth
-# 				vec_lat = self.mlats[i]
-# 				vec_lon = self.mlons[i]
-# 				vec_azi = np.deg2rad(self.kvecs[i])
-# 				
-# 				#convert vec_azm to radar_azm
-# 				radar_azi = tools.get_radar_azi(radar_mlat, radar_mlon, vec_lat, vec_lon, vec_azi)
-# 				self.rad_azms = np.rad2deg(radar_azi)
+		
+		#calculate radar azimuths from vector azimuth
+		self.rad_azms = np.empty(len(self.vec_azms))
+		for i in range(len(self.rad_azms)):
+
+			#get radar coordinates in aacgm
+			sname = self.stations[i]
+			radar_lat = self.station_metadata[sname].lat
+			radar_lon = self.station_metadata[sname].lon
+			dtime = self.dtimes[i]
+			radar_mlat, radar_mlon = tools.geo_to_aacgm(radar_lat, radar_lon, dtime)
+			
+			#get vector position and azimuth
+			vec_lat = self.mlats[i]
+			vec_lon = self.mlons[i]
+			vec_azm = np.deg2rad(self.vec_azms[i])
+			
+			#convert vec_azm to radar_azm
+			radar_azm = tools.get_radar_azm(radar_mlat, radar_mlon, vec_lat, vec_lon, vec_azm)
+			self.rad_azms[i] = np.rad2deg(radar_azm)
 		
 		return
 	
@@ -736,6 +738,7 @@ class GridData():
 		data_dict["times"] = self.times[indexes]
 		data_dict["dtimes"] = self.dtimes[indexes]
 		data_dict["vec_azms"] = self.vec_azms[indexes]
+		data_dict["rad_azms"] = self.rad_azms[indexes]
 		
 		return data_dict
 	
@@ -937,7 +940,7 @@ class GridData():
 			if isinstance(mcolat_range, float) or isinstance(mcolat_range, int):
 				mcolat_indices = np.where((self.station_data["mcolats"] == mcolat_range))
 			elif len(mcolat_range) == 2:
-			#get indexes that are withing mcolat_range
+				#get indexes that are withing mcolat_range
 				mcolat_indices = np.where((self.station_data["mcolats"] >= mcolat_range[0]) & \
 							(self.station_data["mcolats"] <= mcolat_range[1]))
 			else:
