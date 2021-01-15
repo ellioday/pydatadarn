@@ -294,3 +294,31 @@ def lon_look(lon0, lon1):
 	
 	return direction
 	
+def time_to_dtime(date):
+	
+	"""
+	Converts a string time into a datetime object
+	
+	Parameters:
+	-----------
+	time: string
+		time (in format "YYYY/MM/DD HH:mm:ss") 
+	"""
+	
+	YY = int(date[0:4])
+	MM = int(date[5:7])
+	DD = int(date[8:10])
+	HH = int(date[11:13])
+	mm = int(date[14:16])
+	ss = int(date[17:19])
+	
+	YY = int(date[0:4])
+	MM = int(date[5:7])
+	DD = int(date[8:10])
+	HH = int(date[11:13])
+	mm = int(date[14:16])
+	ss = int(date[17:19])
+	
+	dtime = dt.datetime(YY, MM, DD, HH, mm, ss)
+	
+	return dtime

@@ -23,6 +23,7 @@ import scipy.optimize as opt # for optimizing least square fit
 
 import tools
 import data_classes
+import plotting
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -48,6 +49,13 @@ plt.legend()
 plt.show()
 
 time_i = "2013/10/02 07:58:00"
+
+time_index = np.where(vectors.times == time_i)
+mcolats = vectors.mcolats[time_index]
+mlons = vectors.mlons[time_index]
+kvecs = vectors.kvecs[time_index]
+los_vs = vectors.los_vs[time_index]
+plotting.vector_plot(mcolats, mlons, kvecs, los_vs, time=time_i)
 
 vectors.vector_plot(time_i)
 vectors.los_fit(["bks", "wal"], time_i, mcolat_range=37.5, use_radar_azi = True, plot=True)
