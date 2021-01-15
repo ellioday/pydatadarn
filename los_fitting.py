@@ -39,10 +39,18 @@ vectors.add_station("bks", 37.1, -77.95, "W")
 vectors.add_station("wal", 37.93, -75.47, "E")
 vectors.add_data("2013/10/02 00:00:00", "2013/10/02 09:00:00", mod=False)
 
+#plot beam azimuths
+plt.figure()
+x = np.arange(0, len(vectors.stations))
+plt.scatter(x, vectors.rad_azms, s = 1)
+plt.ylabel("radar azm")
+plt.legend()
+plt.show()
+
 time_i = "2013/10/02 07:58:00"
 
-#vectors.vector_plot(time_i)
-vectors.los_fit(["bks", "wal"], time_i, plot=True)
+vectors.vector_plot(time_i)
+vectors.los_fit(["bks", "wal"], time_i, mcolat_range=37.5, use_radar_azi = True, plot=True)
 
 times = np.array([])
 
@@ -99,7 +107,7 @@ for hour in hours:
 			#save to array
 			velocities_fit[mcolat_index, time_count] = vel_mag
 			
-			print("{} - {} - [{}, {}] - {} - {}".format(time, mcolat, mcolat_index, time_count, velocity_raw_time_mcolat_sampled_max, vel_mag))
+		#	print("{} - {} - [{}, {}] - {} - {}".format(time, mcolat, mcolat_index, time_count, velocity_raw_time_mcolat_sampled_max, vel_mag))
 
 		time_count += 1
 
@@ -114,15 +122,16 @@ def make_colorbar_with_padding(ax):
 	cax = divider.append_axes("right", size="5%", pad=0.1)
 	return cax
 
-data_indexes = np.array([], dtype ="int")
+mcolat_data_indexes = np.array([], dtype ="int")
 #get only latitudes that had velocity measurements
 for i in range(len(mcolats)):
 	if False in np.isnan(velocities_fit[i]):
 		print("data found at {}".format(i))
-		data_indexes = np.append(data_indexes, i)
+		mcolat_data_indexes = np.append(mcolat_data_indexes, i)
 		
-mcolat_indexes = mcolats[data_indexes]
-velocities_indexed = velocities_fit[data_indexes]
+		
+mcolat_indexes = mcolats[mcolat_data_indexes]
+velocities_indexed = velocities_fit[mcolat_data_indexes]
 
 
 #plot latitude vs time velocities

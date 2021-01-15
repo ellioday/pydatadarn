@@ -384,10 +384,27 @@ class Station():
 		
 		return mlt
 		
-	def set_boresight(self, boresight):
-		self.boresight = boresight
-		self.boresight_mlon = tools.geo_to_mag(0, 90, self.boresight)
+	def set_boresight(self, boresight, time=dt.datetime(2010, 1, 1, 1, 1, 1)):
+		
+		"""
+		Takes geographical boresight and calculates magnetic north boresight
+		
+		Parameters
+		----------
+		
+		boresight: float
+			angle of boresight (in radians)
+		time: dtime object
+			time of interest
+		"""
+		
+		self.boresight_geo = boresight
+		self.boresight_lon = tools.geo_to_aacgm(0, 90, self.boresight)
+		
+		self.boresight_mag = tools.geo_to_mag_azm(self.boresight_geo, self.lat, self.lon)
+		
 		return
+	
 	def set_beam_number(self, beam_number):
 		self.beam_number = beam_number
 		return
@@ -547,13 +564,15 @@ class GridData():
 		
 		return
 	
-	def add_station(self, sname, lat, lon, look):
+	def add_station(self, sname, lat, lon, look, boresight = False):
 		
 		"""
 		Adds station data to object
 		"""
 		
 		self.station_metadata[sname] = Station(lat, lon, look)
+		if not (not boresight):
+			self.station_metadata[sname].set_boresight = boresight
 		
 		return
 	
@@ -671,45 +690,50 @@ class GridData():
 		
 		#calculate colatitudes
 		self.mcolats = 90-self.mlats	
-		
+						
+		#calculate vector and radar azimuths from mag north, radar and vector points
+		self.vec_azms = np.empty(len(self.kvecs))
+		self.rad_azms = np.empty(len(self.kvecs))
+		for i in range(len(self.vec_azms)):
+
+			#get radar 
+			radar_name = self.stations[i]
+			radar = self.station_metadata[radar_name]
+			#get mcolat and mlon of radar for correct time
+			radar.set_aacgm(self.dtimes[i])
+			
+			#get vector position and azimuth
+			vec_mcolat = self.mcolats[i]
+			vec_mlon = self.mlons[i]
+			
+			#get radar azms
+			vec_azm = tools.cosine_rule([0, 0], [vec_mcolat, vec_mlon], [radar.mcolat, radar.mlon], polar=True)
+			#get radar azms
+			radar_azm = tools.cosine_rule([0, 0], [radar.mcolat, radar.mlon], [vec_mcolat, vec_mlon], polar=True)
+			
+			if tools.lon_look(radar.mlon, vec_mlon) == "E":
+				radar_azm = -radar_azm
+			
+			self.vec_azms[i] = vec_azm
+			self.rad_azms[i] = radar_azm
+			
 		#calculate vector azimuths from kvector
 		#(-ve vec_azms are east look, +ve vec_azms are west look)
 		#then use los_v sign to denote direction of flow, -ve los_v = towards
 		#radar
 		self.vec_azms = np.array(self.kvecs)
 		for i in range(len(self.vec_azms)):
-			look_direction = self.station_metadata[self.stations[i]].look
-			vec_azm = self.vec_azms[i]
-			if look_direction == "E":
-					if vec_azm > 0:
-						self.vec_azms[i] -= 180
-			elif look_direction == "W":	
-					if vec_azm < 0:
-						self.vec_azms[i] += 180	
-						
+ 			look_direction = self.station_metadata[self.stations[i]].look
+ 			vec_azm = self.vec_azms[i]
+ 			if look_direction == "E":
+ 					if vec_azm > 0:
+						  self.vec_azms[i] -= 180
+ 			elif look_direction == "W":	
+ 					if vec_azm < 0:
+						 self.vec_azms[i] += 180				
+			
 		#restrict azimuths between -90 and 90 degrees
 		self.vec_azms = tools.sin9090(self.vec_azms)
-		
-		
-		#calculate radar azimuths from vector azimuth
-		self.rad_azms = np.empty(len(self.vec_azms))
-		for i in range(len(self.rad_azms)):
-
-			#get radar coordinates in aacgm
-			sname = self.stations[i]
-			radar_lat = self.station_metadata[sname].lat
-			radar_lon = self.station_metadata[sname].lon
-			dtime = self.dtimes[i]
-			radar_mlat, radar_mlon = tools.geo_to_aacgm(radar_lat, radar_lon, dtime)
-			
-			#get vector position and azimuth
-			vec_lat = self.mlats[i]
-			vec_lon = self.mlons[i]
-			vec_azm = np.deg2rad(self.vec_azms[i])
-			
-			#convert vec_azm to radar_azm
-			radar_azm = tools.get_radar_azm(radar_mlat, radar_mlon, vec_lat, vec_lon, vec_azm)
-			self.rad_azms[i] = np.rad2deg(radar_azm)
 		
 		return
 	
@@ -918,15 +942,20 @@ class GridData():
 		if len(stations) == 1:
 			self.station_data = self.get_station_data(stations)
 			#add array to tell which station the data belongs to
-			self.station_data["station"] = np.full(len(self.station_data["mcolats"]), stations[0])
+			self.station_data["station_name"] = np.full(len(self.station_data["mcolats"]), stations[0])
 		#if multiple stations are provided then concatenate into one dictionary
 		elif len(stations) == 2:
 			self.station_data = self.get_station_data(stations[0])
-			self.station_data["station"] = np.full(len(self.station_data["mcolats"]), stations[0])
+			self.station_data["station_name"] = np.full(len(self.station_data["mcolats"]), stations[0])
+			temp_data = self.get_station_data(stations[1])
+			temp_data["station_name"] = np.full(len(temp_data["mcolats"]), stations[1])
+			print("station_data_1_length = {} station_data_2_length = {}".format(len(self.station_data["mcolats"]), len(temp_data["mcolats"])))
 			for key in self.station_data:
-				temp_data = self.get_station_data(stations[1])
-				temp_data["station"] = np.full(len(temp_data["mcolats"]), stations[1])
+				print("key = {}\n{} {}".format(key, len(self.station_data[key]), len(temp_data[key])))
 				self.station_data[key] = np.append(self.station_data[key], temp_data[key])
+				print("full length = {}".format(len(self.station_data["mcolats"])))	
+			print(len(self.station_data["mcolats"]))	
+				
 		else:
 			raise Exception("number of stations needs to be 1 or 2")
 			
@@ -962,9 +991,9 @@ class GridData():
 		#for quality purposes, we will make sure there are twice as many points
 		#as parameters (6)
 		elif len(stations) == 2:
-			station0_index = np.where(self.station_data["station"] == stations[0])
-			station1_index = np.where(self.station_data["station"] == stations[1])
-			if len(self.station_data["station"][station0_index]) < 7 or len(self.station_data["station"][station1_index]) < 7:
+			station0_index = np.where(self.station_data["station_name"] == stations[0])
+			station1_index = np.where(self.station_data["station_name"] == stations[1])
+			if len(self.station_data["station_name"][station0_index]) < 7 or len(self.station_data["station_name"][station1_index]) < 7:
 				#print("not enough data for requested time")
 				self.fit = np.array([np.nan])
 				self.w = [np.nan, np.nan, np.nan]
@@ -972,6 +1001,11 @@ class GridData():
 		
 		#create x(theta) series
 		x_series = np.linspace(-180, 180, resolution, endpoint=True)
+		
+		if use_radar_azi:
+			azms = self.station_data["rad_azms"]
+		else:
+			azms = self.station_data["vec_azms"]
 		
 		#calculate rms for initial/guessed amplitude
 		rms = tools.rms(self.station_data["los_vs"])
@@ -986,7 +1020,7 @@ class GridData():
 		
 		#params = median velocity, amplitude, phase shift
 		params = [A, B, phi]
-		self.w, _ = opt.curve_fit(tools.sin, np.deg2rad(self.station_data["vec_azms"]), 
+		self.w, _ = opt.curve_fit(tools.sin, np.deg2rad(azms), 
 						  self.station_data["los_vs"], params, maxfev=50000)
 		#print("Initial parameters = {}".format(params))
 		#print("Estimated parameters = {}\n".format(self.w))
@@ -995,17 +1029,17 @@ class GridData():
 		if plot:
 		
 			#get indexes for location of stations
-			station0_indexes = np.where(self.station_data["station"] == stations[0])
+			station0_indexes = np.where(self.station_data["station_name"] == stations[0])
 			if len(stations) == 2:
-				station1_indexes = np.where(self.station_data["station"] == stations[1])		
+				station1_indexes = np.where(self.station_data["station_name"] == stations[1])		
 			
 			#make plot of los_v over angle
 			fig, ax = plt.subplots(1, 1, figsize=[6, 6])		
-			ax.scatter(self.station_data["vec_azms"][station0_indexes], 
+			ax.scatter(azms[station0_indexes], 
 				 self.station_data["los_vs"][station0_indexes], marker="+",
-				 label = self.station_data["station"][station0_indexes][0])
-			ax.plot(x_series, trial, "--", color="k", label="initial fit")
-			ax.plot(x_series, self.fit, "--", color="r", label="optimised fit")
+				 label = self.station_data["station_name"][station0_indexes][0])
+			#ax.plot(x_series, trial, "--", color="k", label="initial fit")
+			ax.plot(x_series, self.fit, "--", color="r")
 			ax.set_xlim(-90, 90)
 			ax.set_xlabel("azimuth")
 			ax.set_ylabel("line of sight velocity (m/s)")
@@ -1023,9 +1057,9 @@ class GridData():
 			
 			#if there was a second station plot that
 			if len(stations) == 2:
-				ax.scatter(self.station_data["vec_azms"][station1_indexes], 
+				ax.scatter(azms[station1_indexes], 
 					 self.station_data["los_vs"][station1_indexes], marker="+",
-					 label = self.station_data["station"][station1_indexes][0])
+					 label = self.station_data["station_name"][station1_indexes][0])
 				
 			ax.legend()
 			plt.show()

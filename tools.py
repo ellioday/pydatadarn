@@ -211,31 +211,86 @@ def sin9090(thetas):
 	
 	return new_thetas
 
-def get_radar_azi(radar_lat, radar_lon, vec_lat, vec_lon, vec_azi):
+def cosine_rule(A, B, C, polar=False):
 	
 	"""
-	Calculates the radar look (beam) azimuth of backscatter measurement
+	Calculates angle of triangle ABC
 	
-	Parameters:
-	-----------
-	radar_lat: float
-		latitude of radar
-	radar_lon: float
-		longitude of radar
-	vec_lat: float
-		latitude of backscatter measurement
-	vec_lon: float
-		longitude of backscatter measurement
-	vec_azi: float
-		azimuth angle (with respect to North) of backscatter measurement
-		(in radians)
+	Parameters
+	----------
+	A: float array
+		array containing x and y position of A [Bx, Ay]
+	B: float array
+		array containing x and y position of B [Bx, By]
+	C: float array
+		array containing x and y position of C [Cx, Cy]	
+	Polar: Bool
+		set to true if using polar lat/lon coordinates, x=lat, y=lon (in degrees)
 	"""
 	
-	#calculate length between North and vector location
-	vec_len = math.sqrt(vec_lat**2 + vec_lon**2)
-	#calculate length between North and radar location
-	radar_len = math.sqrt(radar_lat**2 + radar_lon**2)
-	#calculate radar look (beam) azimuth
-	radar_azi = (radar_len/np.sin(vec_azi))*vec_len
+	if not polar:
+		c = math.sqrt((A[0]-B[0])**2 + (A[1]-B[1])**2)
+		b = math.sqrt((A[0]-C[0])**2 + (A[1]-C[1])**2)
+		a = math.sqrt((B[0]-C[0])**2 + (B[1]-C[1])**2)
+		
+	elif polar:
+		
+		
+		c = math.sqrt(A[0]**2 + B[0]**2 - 2*A[0]*B[0]*np.cos(np.deg2rad(B[1]-A[1])))
+		b = math.sqrt(A[0]**2 + C[0]**2 - 2*A[0]*C[0]*np.cos(np.deg2rad(C[1]-A[1])))
+		a = math.sqrt(B[0]**2 + C[0]**2 - 2*B[0]*C[0]*np.cos(np.deg2rad(C[1]-B[1])))
 	
-	return radar_azi 
+	cosB = (c**2 + a**2 - b**2)/(2*c*a)
+	B = np.arccos(cosB)
+	
+	return np.rad2deg(B)
+
+def lon_look(lon0, lon1):
+	
+	"""
+	Determines if lon(gitude)1 is due east or west of lon(gitude)0
+	
+	Parameters
+	----------
+	lon0: float
+		longitude of reference point (in defrees)
+	lon1: float
+		longitude of point to determine direction with respect to lon(gitude)0
+	"""
+	
+	#if longitude is given as -180 -> 180 then convert to 0 -> 360
+	if lon0 < 0:
+		lon0 = 180 + (180-abs(lon0))
+		#print("lon0 = {}".format(lon0))
+	if lon1 < 0:
+		lon1 = 180 + (180-abs(lon0))
+		#print("lon1 = {}".format(lon1))
+		
+	lon_diff = lon1 - lon0
+	#print("lon_diff = {}".format(lon_diff))
+	
+	#set up different conditions depending on lon0 being located in east or west
+	if 180 <= lon0 <= 360: #if lon0 is west
+		if -180 <= lon_diff <= 0:
+			direction = "W"
+		elif 0 < lon_diff <= 180:
+			direction = "E"
+		elif -360 <= lon_diff < -180:
+			direction = "E"
+		else:
+			print("unexpected outcome")
+			return
+		
+	elif 0 <= lon0 < 180: #if lon0 is east#
+		if 0 <= lon_diff <= 180:
+			direction = "E"
+		elif -180 <= lon_diff < 0:
+			direction = "W"
+		elif 180 < lon_diff <= 360:
+			direction = "W"
+		else:
+			print("unexpected outcome")
+			return
+	
+	return direction
+	
