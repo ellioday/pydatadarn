@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import datetime as dt
 import matplotlib as mpl
+import scipy.optimize as opt # for optimizing least square fit
 
 import tools
 
@@ -136,3 +137,108 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time, station_coords=[], station_
 	plt.show()
 
 	return
+	
+def los_fit(azimuths, los_vs, time, resolution=100, mcolat_range=False, station_names=False, plot=False):	
+	
+	"""
+	uses least square fitting to determine the longitudinal flow velocity
+	of given radars
+	
+	Parameters
+	----------
+	
+	azimuths: float array
+		array containig azimuth values (in degrees). Must be between -90 and 90
+	los_vs: float array
+		array of line of sight velocities
+	time: string
+		time to plot data for (in format "YYYY/MM/DD HH:mm/ss")
+	resolution: int
+		number of x points to use in the best fitting model
+	mcolat_range: array of float
+		array containing either one magnetic colatitude [mcolat] to 
+		retrieve data for or a low and high magnetic colatitude 
+		[mcolat_low, mcolat_high] to limit the data.
+	station_names: string array
+		array containing names of respective stations in station_coords 
+	plot: Bool
+		default = False (no limit)
+		set whether to plot the los fit
+
+	"""
+		
+	#if there is no data or not enough data (need at least equal to the 
+	#number of fitting parameters (3))
+	if len(azimuths) < 4:
+		#print("not enough data for requested time")
+		fit = np.array([np.nan])
+		w = [np.nan, np.nan, np.nan]
+		return
+	
+	#create x(theta) series
+	x_series = np.linspace(-180, 180, resolution, endpoint=True)
+	
+	#calculate rms for initial/guessed amplitude
+	rms = tools.rms(los_vs)
+	amp = rms*(2**0.5)
+	
+	#make the initial fit
+	A = np.median(los_vs)
+	B = amp
+	phi = 0
+	trial = tools.sin(np.deg2rad(x_series), A, B, phi)
+	#optimise our fit
+	
+	#params = median velocity, amplitude, phase shift
+	params = [A, B, phi]
+	w, _ = opt.curve_fit(tools.sin, np.deg2rad(azimuths), 
+					  los_vs, params, maxfev=50000)
+	#print("Initial parameters = {}".format(params))
+	#print("Estimated parameters = {}\n".format(self.w))
+	fit = tools.sin(np.deg2rad(x_series), *w)
+	
+	if plot:		
+		
+		#make plot of los_v over angle
+		fig, ax = plt.subplots(1, 1, figsize=[6, 6])
+		
+		#get indexes for location of stations
+		if station_names:
+			
+			#get each unique station
+			unique_stations = np.unique(station_names)
+			if len(unique_stations) == 1:
+				ax.scatter(azimuths, los_vs, marker = "+", label = unique_stations[0])
+			elif len(unique_stations) == 2:
+				station0_indexes = np.where(station_names == unique_stations[0])
+				station1_indexes = np.where(station_names == unique_stations[1])
+				ax.scatter(azimuths[station0_indexes], los_vs[station0_indexes], 
+				   marker="+", label=unique_stations[0])
+				ax.scatter(azimuths[station1_indexes], los_vs[station1_indexes], 
+				   marker="+", label=unique_stations[1])
+			
+			ax.legend()
+			
+		else:
+			ax.scatter(azimuths, los_vs, marker = "+")
+		
+		ax.plot(x_series, fit, "--", color="r")
+		ax.set_xlim(-90, 90)
+		ax.set_xlabel("azimuth")
+		ax.set_ylabel("line of sight velocity (m/s)")
+		
+		#set title according to mcolat range
+		if not (not mcolat_range):
+			if len(mcolat_range) == 1:
+				ax.set_title("mcolat range: {}: {} UT".format(mcolat_range[0], 
+												  time))
+			else:
+				ax.set_title("mcolat range: {} - {}: {} UT".format(
+					mcolat_range[0], mcolat_range[1], time))
+		else:
+			ax.set_title("mcolat range: {} - {}: {}".format(30.5, 40.5, time))		
+			
+		plt.show()
+	
+	return
+	

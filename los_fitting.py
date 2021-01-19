@@ -48,6 +48,16 @@ plt.ylabel("radar azm")
 plt.legend()
 plt.show()
 
+#plot beam azimuths
+plt.figure()
+x = np.arange(0, len(vectors.stations))
+plt.scatter(x, vectors.vec_azms, s = 1)
+plt.ylabel("vector azm")
+plt.legend()
+plt.show()
+
+
+
 time_i = "2013/10/02 07:58:00"
 
 time_index = np.where(vectors.times == time_i)
@@ -57,8 +67,11 @@ kvecs = vectors.kvecs[time_index]
 los_vs = vectors.los_vs[time_index]
 plotting.vector_plot(mcolats, mlons, kvecs, los_vs, time=time_i)
 
-vectors.vector_plot(time_i)
-vectors.los_fit(["bks", "wal"], time_i, mcolat_range=37.5, use_radar_azi = True, plot=True)
+#plot line of sight fit
+rad_azms = vectors.rad_azms[time_index]
+#get single colatitude data
+mcolat_indexes = np.where(mcolats == 37.5)
+plotting.los_fit(rad_azms[mcolat_indexes], los_vs[mcolat_indexes], time=time_i, mcolat_range=[37.5], plot=True)
 
 times = np.array([])
 

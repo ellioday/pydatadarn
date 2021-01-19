@@ -766,7 +766,6 @@ class GridData():
 		
 		return data_dict
 	
-	def los_fit(self, stations, time, resolution=100, mcolat_range=False, plot=False, use_radar_azi=False):
 		
 		"""
 		uses least square fitting to determine the longitudinal flow velocity
