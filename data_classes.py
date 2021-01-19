@@ -54,11 +54,10 @@ class LoadFitacf:
 		
 		#extract time parameters into [start, end]
 		YY = [int(start_date[0:4]), int(end_date[0:4])]
-		MM = [int(start_date[5:7]), int(end_date[5:7])]
-		DD = [int(start_date[8:10]), int(end_date[8:10])]
-		HH = [int(start_date[11:13]), int(end_date[11:13])]
-		mm = [int(start_date[14:16]), int(end_date[14:16])]
-		ss = [int(start_date[17:19]), int(end_date[17:19])]
+	
+		#convert time to dtime
+		start_dtime = tools.time_to_dtime(start_date)
+		end_dtime = tools.time_to_dtime(end_date)
 	
 		self.path = "{}{}/{}/".format(fitacf_path, station, YY[0])	
 		
@@ -87,34 +86,30 @@ class LoadFitacf:
 				i+=1
 				continue
 			
+			file_YY = int(files[i][0:4])
 			file_MM = int(files[i][4:6])
 			file_DD = int(files[i][6:8])
 			file_HH = int(files[i][9:11])
 			file_mm = int(files[i][11:13])
 			file_ss = int(files[i][14:16])
+			file_time = "{:04d}/{:02d}/{:02d} {:02d}:{:02d}:{:02d}.".format(
+				file_YY, file_MM, file_DD, file_HH, file_mm, file_ss)
+			file_dtime = tools.time_to_dtime(file_time)
 			
 			#print("file date = {:02d}/{:02d}/{:02d}.{:02d}.{:02d}".format(file_MM, file_DD, file_HH, file_mm, file_ss))
 			
 			if not bound_start:
 				#check if day and then time is within bound
-				if file_MM >= MM[0] and file_DD >= DD[0]:
-					if file_HH >= HH[0] and file_mm >= mm[0] and file_ss >= ss[0]:
-						bound_start = True
-						bounds[0] = i
-						print("start file found")
+				if file_dtime >= start_dtime:
+					bound_start = True
+					bounds[0] = i
+					print("start file found")
 			
 			if bound_start:
 				#check if month then day and then time is within end bound
-				if file_MM > MM[1]:
+				if file_dtime > end_dtime:
 					bound_end = True
 					bounds[1] = i
-				elif file_DD > DD[1]:
-					bound_end = True
-					bounds[1] = i
-				elif file_DD == DD[1]:
-					if file_HH >= HH[1]:
-						bound_end = True
-						bounds[1] = i
 						
 			if bound_end:
 				#print("Data retrieved between {} and {}".format(start_date, end_date))
