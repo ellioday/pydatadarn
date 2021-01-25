@@ -240,5 +240,4 @@ def los_fit(azimuths, los_vs, time, resolution=100, mcolat_range=False, station_
 			
 		plt.show()
 	
-	return
-	
+	return w

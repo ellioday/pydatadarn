@@ -69,9 +69,11 @@ plotting.vector_plot(mcolats, mlons, kvecs, los_vs, time=time_i)
 
 #plot line of sight fit
 rad_azms = vectors.rad_azms[time_index]
+vec_azms = vectors.vec_azms[time_index]
 #get single colatitude data
 mcolat_indexes = np.where(mcolats == 37.5)
 plotting.los_fit(rad_azms[mcolat_indexes], los_vs[mcolat_indexes], time=time_i, mcolat_range=[37.5], plot=True)
+plotting.los_fit(vec_azms[mcolat_indexes], los_vs[mcolat_indexes], time=time_i, mcolat_range=[37.5], plot=True)
 
 times = np.array([])
 
