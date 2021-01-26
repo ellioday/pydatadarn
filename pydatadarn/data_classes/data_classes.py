@@ -9,7 +9,6 @@ Created on Thu Nov  5 04:17:39 2020
 import os
 import pydarn
 import bz2
-import tools
 
 import scipy.optimize as opt # for optimizing least square fit
 
@@ -18,10 +17,11 @@ import datetime as dt
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
+from pydatadarn.tools import tools
 
 #get path to superdarn data
-data_path = open("/home/elliott/Documents/python_analysis/data_path.txt", "r")
-superdarn_path = data_path.read()
+superdarn_data_path = open("/home/elliott/Documents/python_analysis/superdarn_data_path.txt", "r")
+superdarn_path = superdarn_data_path.read()
 #paths for fitacf and grdmap files
 fitacf_path = superdarn_path + "fitacf/"
 grdmap_path = superdarn_path + "grdmap/"
@@ -536,6 +536,7 @@ class FitacfData():
 		return
 	
 class GridData():
+	
 	"""
 	A class used to load .grdmap data into easy to access arrays
 	
@@ -760,3 +761,13 @@ class GridData():
 		data_dict["rad_azms"] = self.rad_azms[indexes]
 		
 		return data_dict
+	
+class LoadCEDAR():
+
+	def __init__(self):
+		fpi_file_path = open("/home/elliott/Documents/python_analysis/FPI_data_path.txt", "r")
+		self.fpi_path = fpi_file_path.read()
+		return
+	
+	
+	

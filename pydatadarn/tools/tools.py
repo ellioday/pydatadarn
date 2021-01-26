@@ -189,7 +189,7 @@ def sin9090(thetas):
 	"""
 	Uses y = sin(theta) to change thetas >90 and <-90 to their equivalent y 
 	values so that all thetas -90 <= theta <= 90
-	range of -90 to 90 degrees e.g. 130deg -> 50deg, -110deg -> -70deg
+	e.g. 130deg -> 50deg, -110deg -> -70deg
 	
 	Parameters
 	----------

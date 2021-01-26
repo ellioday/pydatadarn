@@ -12,7 +12,7 @@ import datetime as dt
 import matplotlib as mpl
 import scipy.optimize as opt # for optimizing least square fit
 
-import tools
+from pydatadarn.tools import tools
 
 def vector_plot(mcolats, mlons, kvecs, los_vs, time, station_coords=[], station_names=False, mlt=True):
 	
