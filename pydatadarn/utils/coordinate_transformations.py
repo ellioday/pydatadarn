@@ -34,7 +34,7 @@ def polar_to_cart(colat, lon):
 def aacgm_to_mlt(lon, time):
 	
 	"""
-	convert from aacgm into magnetic local time
+	wrapper for converting from aacgm into magnetic local time
 	
 	Parameters
 	----------
@@ -61,7 +61,7 @@ def aacgm_to_mlt(lon, time):
 def geo_to_aacgm(lat, lon, time, alt=0):
 	
 	"""
-	convert from geographical latitude and longitude into altitude adjusted
+	wrapper for converting from geographical latitude and longitude into altitude adjusted
 	corrected geomagnetic coordinates (aacgm)
 	
 	Parameters

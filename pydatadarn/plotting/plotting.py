@@ -12,7 +12,8 @@ import datetime as dt
 import matplotlib as mpl
 import scipy.optimize as opt # for optimizing least square fit
 
-from pydatadarn.tools import tools
+from pydatadarn.utils import tools
+from pydatadarn.utils import coordinate_transformations as coords
 
 def vector_plot(mcolats, mlons, kvecs, los_vs, time, station_coords=[], station_names=False, mlt=True):
 	
@@ -97,7 +98,7 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time, station_coords=[], station_
 	if mlt:
 		dtime = tools.time_to_dtime(time)
 		#convert mlons into mlts if so true
-		mlons = tools.aacgm_to_mlt(mlons, dtime)*15
+		mlons = coords.aacgm_to_mlt(mlons, dtime)*15
 		ax.set_xticklabels(["00:00", "06:00", "12:00", "18:00"])
 		
 	ax.set_rlabel_position(135)
@@ -123,7 +124,7 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time, station_coords=[], station_
 		station_mcolat = station[0]
 		station_mlon = station[1]
 		if mlt:
-			station_mlon = tools.aacgm_to_mlt(station_mlon, time)
+			station_mlon = coords.aacgm_to_mlt(station_mlon, time)
 			if isinstance(station_mlon, np.ndarray):
 				station_mlon = station_mlon[0]
 			ax.scatter(np.deg2rad(station_mlon), station_mcolat, 5)

@@ -6,11 +6,10 @@ Created on Mon Nov 30 01:11:27 2020
 @author: elliott
 """
 
+import math
+
 import datetime as dt
 import numpy as np
-
-import aacgmv2
-import math
 
 def rms(x):
 	
