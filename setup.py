@@ -13,5 +13,5 @@ setuptools.setup(name="pydatadarn",
 		"License :: OSI Approved :: MIT License",
 	],
 	python_requires=">=3.6",
-	install_requires=["numpy", "scipy", "matplotlib", "spacepy", "aacgmv2"],
+	install_requires=["numpy", "scipy", "matplotlib", "aacgmv2"],
 )

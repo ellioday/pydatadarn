@@ -17,7 +17,8 @@ import datetime as dt
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-from pydatadarn.tools import tools
+from pydatadarn.utils import tools
+from pydatadarn.utils import coordinate_transformations as coords
 
 #get path to superdarn data
 superdarn_data_path = open("/home/elliott/Documents/python_analysis/superdarn_data_path.txt", "r")
@@ -352,7 +353,7 @@ class Station():
 		time: datetime object
 			datetime object of format datetime.datetime(YY, MM, DD, hh, mm, ss)
 		"""
-		self.mlat, self.mlon = tools.geo_to_aacgm(self.lat, self.lon, time)
+		self.mlat, self.mlon = coords.geo_to_aacgm(self.lat, self.lon, time)
 		if isinstance(self.mlat, np.ndarray):
 			self.mlat = self.mlat[0]
 		if isinstance(self.mlon, np.ndarray):
@@ -372,14 +373,14 @@ class Station():
 			datetime object of format datetime.datetime(YY, MM, DD, hh, mm, ss)
 		"""
 		
-		mlt = tools.aacgm_to_mlt(self.mlon, time)
+		mlt = coords.aacgm_to_mlt(self.mlon, time)
 		
 		if isinstance(mlt, np.ndarray):
 			mlt = mlt[0]
 		
 		return mlt
 		
-	def set_boresight(self, boresight, time=dt.datetime(2010, 1, 1, 1, 1, 1)):
+	def set_boresight(self, boresight):
 		
 		"""
 		Takes geographical boresight and calculates magnetic north boresight
@@ -394,9 +395,6 @@ class Station():
 		"""
 		
 		self.boresight_geo = boresight
-		self.boresight_lon = tools.geo_to_aacgm(0, 90, self.boresight)
-		
-		self.boresight_mag = tools.geo_to_mag_azm(self.boresight_geo, self.lat, self.lon)
 		
 		return
 	

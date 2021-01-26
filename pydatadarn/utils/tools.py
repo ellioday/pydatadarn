@@ -6,153 +6,11 @@ Created on Mon Nov 30 01:11:27 2020
 @author: elliott
 """
 
-import spacepy.coordinates as coord
-from spacepy.time import Ticktock
-
 import datetime as dt
 import numpy as np
 
 import aacgmv2
 import math
-
-def mag_to_geo(alt, mlat, mlon):
-	
-	"""
-	SPACEPY - converts geomagnetic coordinates to geographic
-	
-	Parameters
-	----------
-	
-	alt: float
-		altitude of coordinates (in km)
-		
-	mlat: float
-		magnetic latitude of geomagnetic coordinates
-		
-	mlon: float
-		magnetic latitude of geomagnetic coordinates
-	"""
-	Re = 6371
-	cvals = coord.Coords([Re+alt, mlat, mlon], "MAG", "sph",["Re", "deg", "deg"])
-	#set time epoch for coordinates
-	cvals.ticks=Ticktock(["2013-10-02T00:00:00"], "ISO")
-	gcoords = cvals.convert("GEO", "sph")
-	
-	return gcoords
-	
-def geo_to_mag(alt, lat, lon):
-	
-	"""
-	SPACEPY - converts geographical coordinates to geomagnetic
-	
-	Parameters
-	----------
-	
-	alt: float
-		altitude of coordinates (in km)
-		
-	lat: float
-		latitude of geographical coordinates
-		
-	lon: float
-		longitude of geographical coordinates
-	
-	"""
-	
-	Re=6371
-	cvals = coord.Coords([Re+alt, lat, lon], "GEO", "sph",["Re", "deg", "deg"])
-	cvals.ticks=Ticktock(["2013-10-02T00:00:00"], "ISO")
-	mcoords = cvals.convert("MAG", "sph")
-	mlat = mcoords.lati[0]
-	mlon = mcoords.long[0]
-	return mlat, mlon
-
-def polar_to_cart(colat, lon):
-	
-	"""
-	converts polar coordinates to cartesian
-	
-	Parameters
-	----------
-	
-	colat: float or array of floats
-		colatitude of coordinates
-		
-	lon: float or array of floats
-		longitude of coordinates (in degrees)
-	"""
-	lon_rad = np.deg2rad(lon)
-	
-	#check if array
-	if not isinstance(colat, np.ndarray):
-		x = colat*np.sin(lon_rad)
-		y = -colat*np.cos(lon_rad)
-	else:
-		x, y = np.empty(len(colat)), np.empty(len(lon_rad))
-		for i in range(len(x)):
-			x[i] = colat[i]*np.sin(lon_rad[i])
-			y[i] = -colat[i]*np.cos(lon_rad[i])
-			
-	return x, y
-
-def aacgm_to_mlt(lon, time):
-	
-	"""
-	convert from aacgm into magnetic local time
-	
-	Parameters
-	----------
-	
-	lon: float or array of floats
-		longitude or array of longitudes (in degrees) to convert to mlt 
-		
-	time: datetime object
-		date and time for conversion (UT) in format 
-		datetime.datetime(YY, MM, DD, hh, mm, ss)
-		
-	Returns
-	-------
-	
-	mlt_lon: array of floats
-		returns magnetic longitude as either an array-like float or array of
-		floats (depending on input)
-	"""
-	
-	mlt_lon = np.array(aacgmv2.convert_mlt(lon, time, m2a=False))
-	
-	return mlt_lon
-
-def geo_to_aacgm(lat, lon, time, alt=0):
-	
-	"""
-	convert from geographical latitude and longitude into altitude adjusted
-	corrected geomagnetic coordinates (aacgm)
-	
-	Parameters
-	----------
-	
-	lat: float or array of floats
-		latitude of coordinates
-		
-	lon: float or array of floats
-		longitude of coordinates (in degrees)
-		
-	time: datetime object
-		datetime object of format datetime.datetime(YY, MM, DD, hh, mm, ss)
-		
-	Returns
-	-------
-	
-	alat: float or array of floats
-		latitude in aacgm
-		
-	alon: float or array of floats
-		longitude in aacgm		
-	"""
-	
-	alat, alon, r = aacgmv2.convert_latlon_arr(lat, lon, alt, time, method_code="G2A")
-	
-	return alat, alon
 
 def rms(x):
 	
@@ -174,6 +32,8 @@ def rms(x):
 def sin(x, A, B, phi):
 	
 	"""
+	Returns the y values of sine function with input parameters
+
 	Parameters
 	----------
 	A = median velocity
