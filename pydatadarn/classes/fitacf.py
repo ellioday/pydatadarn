@@ -211,7 +211,7 @@ class LoadFitacf:
 			
 		return self.data
 
-class FitacfData():
+class FitData():
 	
 	"""
 	A class used to load .fitacf data into easy to access arrays

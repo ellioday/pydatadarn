@@ -359,13 +359,3 @@ class GridData():
 		data_dict["rad_azms"] = self.rad_azms[indexes]
 		
 		return data_dict
-	
-class LoadCEDAR():
-
-	def __init__(self):
-		fpi_file_path = open("/home/elliott/Documents/python_analysis/FPI_data_path.txt", "r")
-		self.fpi_path = fpi_file_path.read()
-		return
-	
-	
-	

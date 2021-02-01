@@ -15,7 +15,9 @@ import scipy.optimize as opt # for optimizing least square fit
 from pydatadarn.utils import tools
 from pydatadarn.utils import coordinate_transformations as coords
 
-def vector_plot(mcolats, mlons, kvecs, los_vs, time, station_coords=[], station_names=False, mlt=True):
+def vector_plot(mcolats, mlons, kvecs, los_vs, time, station_coords=[], 
+				station_names=False, mlt=True, mcolat_min=0, mcolat_max=50,
+				theta_min=0, theta_max=360):
 	
 	"""
 	Creates a polar plot of line of sight vectors
@@ -41,7 +43,7 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time, station_coords=[], station_
 		onto vector plot. If multiple stations then use multiple rows for each
 		station e.g. np.array([no.stations, 2])
 		
-	station_names: string array
+	station_names (optional): string array
 		array containing names of respective stations in station_coords
 		
 	time: dtime object, optional
@@ -49,8 +51,25 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time, station_coords=[], station_
 		magnetic local time (in format "YYYY/MM/DD HH:mm:ss"),
 		only needed if mlt = True
 
-	mlt: bool
-		sets whether to convert from magnetic longitude into local time
+	mlt (optional): bool
+		sets whether to convert from magnetic longitude into local time 
+		(default false)
+	
+	mcolat_min: float
+		sets the minimum magnetic colatitude to be shown by the plot
+	
+	mcolat_max: float
+		sets the maxmimum magnetic colatitude to be shown by the plot
+		
+	theta_min: float
+		sets the minimum angle to be shown by the plot .
+		(0, 90, 180, 270, 360 degrees = South, East, North, West, South 
+		   if viewing plot as a compass)
+		
+	theta_max: float
+		sets the maximum angle to be shown by the plot
+		(0, 90, 180, 270, 360 degrees = South, East, North, West, South 
+		   if viewing plot as a compass)
 		
 	"""
 	
@@ -102,10 +121,10 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time, station_coords=[], station_
 		ax.set_xticklabels(["00:00", "06:00", "12:00", "18:00"])
 		
 	ax.set_rlabel_position(135)
-	ax.set_ylim(0, 50)
+	ax.set_ylim(mcolat_min, mcolat_max)
 	ax.set_title("{} UT".format(time))
-	ax.set_thetamin(0)
-	ax.set_thetamax(90)
+	ax.set_thetamin(theta_min)
+	ax.set_thetamax(theta_max)
 	
 	#Define normalised scale
 	cNorm = mpl.colors.Normalize(vmin=-600, vmax=600)
