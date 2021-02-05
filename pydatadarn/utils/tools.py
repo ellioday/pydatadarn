@@ -164,20 +164,47 @@ def time_to_dtime(date):
 		time (in format "YYYY/MM/DD HH:mm:ss") 
 	"""
 	
-	YY = int(date[0:4])
-	MM = int(date[5:7])
-	DD = int(date[8:10])
-	HH = int(date[11:13])
-	mm = int(date[14:16])
-	ss = int(date[17:19])
+	if not isinstance(date, np.ndarray):
+
+		YY = int(date[0:4])
+		MM = int(date[5:7])
+		DD = int(date[8:10])
+		HH = int(date[11:13])
+		mm = int(date[14:16])
+		ss = int(date[17:19])
+		
+		YY = int(date[0:4])
+		MM = int(date[5:7])
+		DD = int(date[8:10])
+		HH = int(date[11:13])
+		mm = int(date[14:16])
+		ss = int(date[17:19])
+		
+		dtime = dt.datetime(YY, MM, DD, HH, mm, ss)
+
+		return dtime
+
+	elif isinstance(date, np.ndarray):
+
+		dtimes = np.array([])
+		for i in range(len(date)):
+
+			YY = int(date[i][0:4])
+			MM = int(date[i][5:7])
+			DD = int(date[i][8:10])
+			HH = int(date[i][11:13])
+			mm = int(date[i][14:16])
+			ss = int(date[i][17:19])
+			
+			YY = int(date[i][0:4])
+			MM = int(date[i][5:7])
+			DD = int(date[i][8:10])
+			HH = int(date[i][11:13])
+			mm = int(date[i][14:16])
+			ss = int(date[i][17:19])
+			
+			dtime = dt.datetime(YY, MM, DD, HH, mm, ss)
+			dtimes = np.append(dtimes, dtime)
+
+		return dtimes
 	
-	YY = int(date[0:4])
-	MM = int(date[5:7])
-	DD = int(date[8:10])
-	HH = int(date[11:13])
-	mm = int(date[14:16])
-	ss = int(date[17:19])
-	
-	dtime = dt.datetime(YY, MM, DD, HH, mm, ss)
-	
-	return dtime
