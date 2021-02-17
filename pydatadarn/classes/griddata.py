@@ -22,11 +22,13 @@ from pydatadarn.utils import coordinate_transformations as coords
 from pydatadarn.classes.station import Station
 
 #get path to superdarn data
-superdarn_data_path = open("/home/elliott/Documents/python_analysis/superdarn_data_path.txt", "r")
-superdarn_path = superdarn_data_path.read()
+luna_path_file = open("/home/elliott/Documents/python_analysis/luna_path.txt", "r")
+luna_path = luna_path_file.read()
+if luna_path[len(luna_path)-1:len(luna_path)] == "\n":
+	luna_path = luna_path[0:len(luna_path)-1]
 #paths for fitacf and grdmap files
-fitacf_path = superdarn_path + "fitacf/"
-grdmap_path = superdarn_path + "grdmap/"
+fitacf_path = luna_path + "fitacf/"
+grdmap_path = luna_path + "users/daye1/Superdarn/Data/grid/"
 	
 class LoadGridmap:
 	
@@ -58,9 +60,11 @@ class LoadGridmap:
 		MM = [int(start_date[5:7]), int(end_date[5:7])]
 		DD = [int(start_date[8:10]), int(end_date[8:10])]
 	
-		self.path = "{}{}/{}/".format(grdmap_path, station, YY[0])	
+		self.path = "{}{}/{}/{}/".format(grdmap_path, station, YY[0], MM[0])	
+		print(self.path)
 		
 		files = sorted(os.listdir(self.path))
+		print(files)
 		num_files = len(files)
 		
 		#index where files are within time bounds
@@ -69,11 +73,15 @@ class LoadGridmap:
 		bounds = [0, 0]
 		i = 0
 		
-		while bound_end == False or i < num_files:
+		while bound_end == False and i <= num_files:
 			
+			if i == num_files:
+				bounds[1]=i
+				break
 			#files are named in format: YYYYMMDD.HHmm.ss.bks.fitacf.bz2
 		#	print("Checking file number {}...".format(i))
 			
+			print(files[i])
 			file_MM = int(files[i][4:6])
 			file_DD = int(files[i][6:8])
 			
@@ -109,6 +117,25 @@ class LoadGridmap:
 		self.file_list = files[bounds[0]:bounds[1]]
 		
 		return
+	
+	def read(self, fname):
+		
+		"""
+		Takes input fitacf file (fname) and returns the data from the file
+		
+		Parameters
+		----------
+		
+		fname: string
+			name of file
+		"""
+		
+		fname = self.path+fname
+		
+		file_data = pydarn.SDarnRead(fname)
+		grid_data = file_data.read_grid()
+		
+		return grid_data
 	
 	def read_bz2(self, fname):
 		
@@ -217,7 +244,12 @@ class GridData():
 			self.data_files = LoadGridmap(str(station), start_date, end_date)
 			#access data in files
 			for i in range(len(self.data_files.file_list)):
-				self.grid_data = self.data_files.read_bz2(self.data_files.file_list[i])
+				
+				data_file = self.data_files.file_list[i]
+				if data_file[len(data_file)-4:] == ".bz2":
+					self.grid_data = self.data_files.read_bz2(data_file)
+				else:
+					self.grid_data = self.data_files.read(data_file)
 				
 				for j in range(len(self.grid_data)):
 					#obtain individual sample
@@ -265,8 +297,12 @@ class GridData():
 									if kvecs[i] > 0:
 										los_vs[i] = -los_vs[i]		
 						
+						print("start_dtime", start_dtime)
+						print("dtime", dtime)
+						print("end_dtime", end_dtime)
+						
 						if start_dtime <= dtime <= end_dtime:
-							#print("time within bounds")
+							print("time within bounds")
 							self.mlats = np.append(self.mlats, mlats)
 							self.mlons = np.append(self.mlons, mlons)
 							self.kvecs = np.append(self.kvecs, kvecs)
@@ -276,6 +312,8 @@ class GridData():
 								self.times = np.append(self.times, full_time)
 								self.dtimes = np.append(self.dtimes, dtime)
 								self.stations = np.append(self.stations, station)
+						else:
+							print("time not within bounds")
 						
 					except:
 						continue
