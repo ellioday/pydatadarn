@@ -64,48 +64,44 @@ class Station():
 				elif line[0] == "#":
 					continue
 				else:
-					#sometimes there may be blank lines
-					if len(line[0]) <= 1:
-						continue
-					else:
-						print(line)
-						print(len(line))
-						#add data to arrays
-						data = line.split()
-						print(data)
-						self.stat_id = np.append(self.stat_id, int(data[0]))
-						
-						#if final entry for year is a ridiculously large number
-						#we can run into compatibility issues so set it to current
-						#date
-						year = int(data[1])
-						sec = int(data[2])
-						if year > datetime.datetime.now().year :
-							year = datetime.datetime.now().year
-							#also set the seconds to be the time now
-							sec = datetime.datetime.now().timetuple().tm_yday*24*3600
-						
-						self.years = np.append(self.years, year)
-						self.secs = np.append(self.secs, sec)
-						self.glats = np.append(self.glats, float(data[3]))
-						self.glons = np.append(self.glons, float(data[4]))
-						self.alts = np.append(self.alts, float(data[5]))
-						self.boresight = np.append(self.boresight, float(data[6]))
-						self.beam_sep = np.append(self.beam_sep, float(data[7]))
-						self.vel_sign = np.append(self.vel_sign, float(data[8]))
-						self.an_rx_atten_db = np.append(self.an_rx_atten_db, float(data[9]))
-						self.tdiff = np.append(self.tdiff, float(data[10]))
-						self.phase_sign = np.append(self.phase_sign, float(data[11]))
-						self.interf_offset_x = np.append(self.interf_offset_x, float(data[12]))
-						self.interf_offset_y = np.append(self.interf_offset_y, float(data[13]))
-						self.interf_offset_z = np.append(self.interf_offset_z, float(data[14]))
-						self.an_rx_rise_time = np.append(self.an_rx_atten_db, float(data[15]))
-						self.an_atten_stages = np.append(self.an_atten_stages, int(data[16]))
-						self.max_range_gates = np.append(self.max_range_gates, int(data[17]))
-						self.max_beams = np.append(self.max_beams, int(data[18]))
-						#get datetimes
-						dtime = datetime.datetime(year, 1, 1, 0, 0, 0) + datetime.timedelta(seconds=int(data[2]))
-						self.dtimes = np.append(self.dtimes, dtime)
+					print(line)
+					print(len(line))
+					#add data to arrays
+					data = line.split()
+					print(data)
+					self.stat_id = np.append(self.stat_id, int(data[0]))
+					
+					#if final entry for year is a ridiculously large number
+					#we can run into compatibility issues so set it to current
+					#date
+					year = int(data[1])
+					sec = int(data[2])
+					if year > datetime.datetime.now().year :
+						year = datetime.datetime.now().year
+						#also set the seconds to be the time now
+						sec = datetime.datetime.now().timetuple().tm_yday*24*3600
+					
+					self.years = np.append(self.years, year)
+					self.secs = np.append(self.secs, sec)
+					self.glats = np.append(self.glats, float(data[3]))
+					self.glons = np.append(self.glons, float(data[4]))
+					self.alts = np.append(self.alts, float(data[5]))
+					self.boresight = np.append(self.boresight, float(data[6]))
+					self.beam_sep = np.append(self.beam_sep, float(data[7]))
+					self.vel_sign = np.append(self.vel_sign, float(data[8]))
+					self.an_rx_atten_db = np.append(self.an_rx_atten_db, float(data[9]))
+					self.tdiff = np.append(self.tdiff, float(data[10]))
+					self.phase_sign = np.append(self.phase_sign, float(data[11]))
+					self.interf_offset_x = np.append(self.interf_offset_x, float(data[12]))
+					self.interf_offset_y = np.append(self.interf_offset_y, float(data[13]))
+					self.interf_offset_z = np.append(self.interf_offset_z, float(data[14]))
+					self.an_rx_rise_time = np.append(self.an_rx_atten_db, float(data[15]))
+					self.an_atten_stages = np.append(self.an_atten_stages, int(data[16]))
+					self.max_range_gates = np.append(self.max_range_gates, int(data[17]))
+					self.max_beams = np.append(self.max_beams, int(data[18]))
+					#get datetimes
+					dtime = datetime.datetime(year, 1, 1, 0, 0, 0) + datetime.timedelta(seconds=int(data[2]))
+					self.dtimes = np.append(self.dtimes, dtime)
 		
 	def get_aacgm(self, dtime):			
 	
