@@ -186,23 +186,18 @@ class GridData():
 		
 		return
 	
-	def add_station(self, sname):
-		
-		"""
-		Adds station data to object
-		"""
-		
-		self.station_metadata[sname] = Station(sname)
-		
-		return
 	
-	def add_data(self, start_date, end_date, mod=True, get_rad_azms=True):
+	def add_data(self, sname, start_date, end_date, mod=True, get_rad_azms=True):
 		
 		"""
 		Adds los data between dates for stations currently in the object
 		
 		Parameters
 		----------
+		
+		sname: string
+			3-letter station code for radar data to add e.g. "ade". to add data
+			from all available radars use "all"
 		
 		start_date: string
 			inclusive start date to get data from 
@@ -218,6 +213,8 @@ class GridData():
 			velocities towards the radar as negative and velocities away 
 			positive (default = True)
 		"""
+		
+		self.station_metadata[sname] = Station(sname)
 		self.mod = mod
 		
 		start_YY = int(start_date[0:4])
@@ -238,96 +235,100 @@ class GridData():
 							start_mm, start_ss)
 		end_dtime = dt.datetime(end_YY, end_MM, end_DD, end_HH, end_mm, end_ss)
 		
-		for sname in self.station_metadata:
-			#access files
-			self.data_files = LoadGridmap(str(sname), start_date, end_date)
+		self.data_files = LoadGridmap(str(sname), start_date, end_date)
+		
+		#access data in files
+		for i in range(len(self.data_files.file_list)):
+			data_file = self.data_files.file_list[i]
+			if data_file[len(data_file)-4:] == ".bz2":
+				self.grid_data = self.data_files.read_bz2(data_file)
+			else:
+				self.grid_data = self.data_files.read(data_file)
 			
-			#access data in files
-			for i in range(len(self.data_files.file_list)):
-				data_file = self.data_files.file_list[i]
-				if data_file[len(data_file)-4:] == ".bz2":
-					self.grid_data = self.data_files.read_bz2(data_file)
-				else:
-					self.grid_data = self.data_files.read(data_file)
-				
-				#obtain individual sample
-				for j in range(len(self.grid_data)):
-					self.sample = self.grid_data[j]
-				
-					#get data
-					try:
-	
-						mlats = self.sample["vector.mlat"]
-						mlons = self.sample["vector.mlon"]
-						kvecs = self.sample["vector.kvect"]
-						los_vs = self.sample["vector.vel.median"]
-						los_e = self.sample["vector.vel.sd"]
-						look = np.array([])
-						
-						#access time
-						YY = int(self.sample["start.year"])
-						MM = int(self.sample["start.month"])
-						DD = int(self.sample["start.day"])
-						hh = int(self.sample["start.hour"])
-						mm = int(self.sample["start.minute"])
-						ss = int(self.sample["start.second"])
-						start_day = "{:02d}/{:02d}/{:02d}".format(YY, MM, DD)
-						start_time = "{:02d}:{:02d}:{:02d}".format(hh, mm, ss)
-						full_time = "{} {}".format(start_day, start_time)
-						dtime = dt.datetime(YY, MM, DD, hh, mm, ss)
+			#obtain individual sample
+			for j in range(len(self.grid_data)):
+				self.sample = self.grid_data[j]
+			
+				#get data
+				try:
 
-						#find which station data to use (time)
-						station = self.station_metadata[sname]
-						#calculate if the data point (mlon) is due east or
-						#west from the station
+					mlats = self.sample["vector.mlat"]
+					mlons = self.sample["vector.mlon"]
+					kvecs = self.sample["vector.kvect"]
+					los_vs = self.sample["vector.vel.median"]
+					los_e = self.sample["vector.vel.sd"]
+					look = np.array([])
+					
+					#access time
+					YY = int(self.sample["start.year"])
+					MM = int(self.sample["start.month"])
+					DD = int(self.sample["start.day"])
+					hh = int(self.sample["start.hour"])
+					mm = int(self.sample["start.minute"])
+					ss = int(self.sample["start.second"])
+					start_day = "{:02d}/{:02d}/{:02d}".format(YY, MM, DD)
+					start_time = "{:02d}:{:02d}:{:02d}".format(hh, mm, ss)
+					full_time = "{} {}".format(start_day, start_time)
+					dtime = dt.datetime(YY, MM, DD, hh, mm, ss)
+
+					#find which station data to use (time)
+					station = self.station_metadata[sname]
+					#calculate if the data point (mlon) is due east or
+					#west from the station
+					for i in range(len(mlats)):
+						#get station magnetic coordinates
+						station_mlat, station_mlon = station.get_aacgm(dtime)
+						#get look direction
+						look_direction = tools.lon_look(station_mlon, mlons[i])	
+						look = np.append(look, look_direction)
+					
+					#make sure kvecs are consistent between look directions
+					#(aka -ve kvecs are east look, +ve kvecs are west look)
+					#use los_v sign to denote direction of flow, negative 
+					#velocities = towards radar station.
+					for i in range(len(look)):
+						if not mod:
+							if look[i] == "E":
+								#for east look kvec always needs to be negative
+								if kvecs[i] < 0:
+									los_vs[i] = -los_vs[i]
+							elif look[i] == "W":
+								#for west look kvec always needs to be positive
+								if kvecs[i] > 0:
+									los_vs[i] = -los_vs[i]		
+					
+					print("start_dtime", start_dtime)
+					print("dtime", dtime)
+					print("end_dtime", end_dtime)
+					
+					if start_dtime <= dtime <= end_dtime:
+						print("time within bounds")
+						self.mlats = np.append(self.mlats, mlats)
+						self.mlons = np.append(self.mlons, mlons)
+						self.kvecs = np.append(self.kvecs, kvecs)
+						self.los_vs = np.append(self.los_vs, los_vs)
+						self.los_e = np.append(self.los_e, los_e)
+						self.look = np.append(self.look, look)
 						for i in range(len(mlats)):
-							#get station magnetic coordinates
-							station_mlat, station_mlon = station.get_aacgm(dtime)
-							#get look direction
-							look_direction = tools.lon_look(station_mlon, mlons[i])	
-							look = np.append(look, look_direction)
-						
-						#make sure kvecs are consistent between look directions
-						#(aka -ve kvecs are east look, +ve kvecs are west look)
-						#use los_v sign to denote direction of flow, negative 
-						#velocities = towards radar station.
-						for i in range(len(look)):
-							if not mod:
-								if look[i] == "E":
-									#for east look kvec always needs to be negative
-									if kvecs[i] < 0:
-										los_vs[i] = -los_vs[i]
-								elif look[i] == "W":
-									#for west look kvec always needs to be positive
-									if kvecs[i] > 0:
-										los_vs[i] = -los_vs[i]		
-						
-						print("start_dtime", start_dtime)
-						print("dtime", dtime)
-						print("end_dtime", end_dtime)
-						
-						if start_dtime <= dtime <= end_dtime:
-							print("time within bounds")
-							self.mlats = np.append(self.mlats, mlats)
-							self.mlons = np.append(self.mlons, mlons)
-							self.kvecs = np.append(self.kvecs, kvecs)
-							self.los_vs = np.append(self.los_vs, los_vs)
-							self.los_e = np.append(self.los_e, los_e)
-							self.look = np.append(self.look, look)
-							for i in range(len(mlats)):
-								self.times = np.append(self.times, full_time)
-								self.dtimes = np.append(self.dtimes, dtime)
-								self.stations = np.append(self.stations, sname)
-						else:
-							print("time not within bounds")
-						
-					except:
-						continue
-			
-			print("station {} data added.".format(sname))
+							self.times = np.append(self.times, full_time)
+							self.dtimes = np.append(self.dtimes, dtime)
+							self.stations = np.append(self.stations, sname)
+					else:
+						print("time not within bounds")
+					
+				except:
+					continue
 		
 		#calculate magnetic colatitudes
-		self.mcolats = 90-self.mlats	
+		self.mcolats = 90-self.mlats
+		
+		print("station {} data added.".format(sname))
+		
+	def get_azms(self):
+		
+		"""
+		Calculates both vector and radar azimuths for velocity data
+		"""
 						
 		#calculate vector and radar azimuths from mag north, radar and vector points
 		self.vec_azms = np.empty(len(self.kvecs))
