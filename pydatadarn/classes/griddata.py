@@ -179,21 +179,20 @@ class GridData():
 		self.mlons = np.array([])
 		self.kvecs = np.array([])
 		self.los_vs = np.array([])
+		self.look = np.array([]) # for determining if data are due east or west of station
 		self.los_e = np.array([]) # los velocity standard deviation
 		self.times = np.array([]) # store time as a string
 		self.dtimes = np.array([]) # store time as a datetime object
 		
 		return
 	
-	def add_station(self, sname, lat, lon, look, boresight = False):
+	def add_station(self, sname):
 		
 		"""
 		Adds station data to object
 		"""
 		
-		self.station_metadata[sname] = Station(lat, lon, look)
-		if not (not boresight):
-			self.station_metadata[sname].set_boresight = boresight
+		self.station_metadata[sname] = Station(sname)
 		
 		return
 	
@@ -239,20 +238,20 @@ class GridData():
 							start_mm, start_ss)
 		end_dtime = dt.datetime(end_YY, end_MM, end_DD, end_HH, end_mm, end_ss)
 		
-		for station in self.station_metadata:
+		for sname in self.station_metadata:
 			#access files
-			self.data_files = LoadGridmap(str(station), start_date, end_date)
+			self.data_files = LoadGridmap(str(sname), start_date, end_date)
+			
 			#access data in files
 			for i in range(len(self.data_files.file_list)):
-				
 				data_file = self.data_files.file_list[i]
 				if data_file[len(data_file)-4:] == ".bz2":
 					self.grid_data = self.data_files.read_bz2(data_file)
 				else:
 					self.grid_data = self.data_files.read(data_file)
 				
+				#obtain individual sample
 				for j in range(len(self.grid_data)):
-					#obtain individual sample
 					self.sample = self.grid_data[j]
 				
 					#get data
@@ -263,37 +262,43 @@ class GridData():
 						kvecs = self.sample["vector.kvect"]
 						los_vs = self.sample["vector.vel.median"]
 						los_e = self.sample["vector.vel.sd"]
+						look = np.array([])
 						
+						#access time
 						YY = int(self.sample["start.year"])
 						MM = int(self.sample["start.month"])
 						DD = int(self.sample["start.day"])
 						hh = int(self.sample["start.hour"])
 						mm = int(self.sample["start.minute"])
 						ss = int(self.sample["start.second"])
-						#access time
 						start_day = "{:02d}/{:02d}/{:02d}".format(YY, MM, DD)
 						start_time = "{:02d}:{:02d}:{:02d}".format(hh, mm, ss)
 						full_time = "{} {}".format(start_day, start_time)
 						dtime = dt.datetime(YY, MM, DD, hh, mm, ss)
-						#access the look of the station
-						look = self.station_metadata[station].look
-						self.sample_access = self.sample
-						#print("try succesfull")						
-						#only save the data if it lies between the requested times
+
+						#find which station data to use (time)
+						station = self.station_metadata[sname]
+						#calculate if the data point (mlon) is due east or
+						#west from the station
+						for i in range(len(mlats)):
+							#get station magnetic coordinates
+							station_mlat, station_mlon = station.get_aacgm(dtime)
+							#get look direction
+							look_direction = tools.lon_look(station_mlon, mlons[i])	
+							look = np.append(look, look_direction)
 						
 						#make sure kvecs are consistent between look directions
 						#(aka -ve kvecs are east look, +ve kvecs are west look)
 						#use los_v sign to denote direction of flow, negative 
 						#velocities = towards radar station.
-						if not mod:
-							if look == "E":
-								#for east look kvec always needs to be negative
-								for i in range(len(kvecs)):
+						for i in range(len(look)):
+							if not mod:
+								if look[i] == "E":
+									#for east look kvec always needs to be negative
 									if kvecs[i] < 0:
 										los_vs[i] = -los_vs[i]
-							elif look == "W":
-								#for west look kvec always needs to be positive
-								for i in range(len(kvecs)):
+								elif look[i] == "W":
+									#for west look kvec always needs to be positive
 									if kvecs[i] > 0:
 										los_vs[i] = -los_vs[i]		
 						
@@ -308,19 +313,20 @@ class GridData():
 							self.kvecs = np.append(self.kvecs, kvecs)
 							self.los_vs = np.append(self.los_vs, los_vs)
 							self.los_e = np.append(self.los_e, los_e)
+							self.look = np.append(self.look, look)
 							for i in range(len(mlats)):
 								self.times = np.append(self.times, full_time)
 								self.dtimes = np.append(self.dtimes, dtime)
-								self.stations = np.append(self.stations, station)
+								self.stations = np.append(self.stations, sname)
 						else:
 							print("time not within bounds")
 						
 					except:
 						continue
 			
-			print("station {} data added.".format(station))
+			print("station {} data added.".format(sname))
 		
-		#calculate colatitudes
+		#calculate magnetic colatitudes
 		self.mcolats = 90-self.mlats	
 						
 		#calculate vector and radar azimuths from mag north, radar and vector points
@@ -332,18 +338,19 @@ class GridData():
 			radar_name = self.stations[i]
 			radar = self.station_metadata[radar_name]
 			#get mcolat and mlon of radar for correct time
-			radar.set_aacgm(self.dtimes[i])
+			radar_mlat, radar_mlon = radar.get_aacgm(self.dtimes[i])
+			radar_mcolat = 90-radar_mlat
 			
 			#get vector position and azimuth
 			vec_mcolat = self.mcolats[i]
 			vec_mlon = self.mlons[i]
 			
 			#get vector azms
-			vec_azm = tools.cosine_rule([0, 0], [vec_mcolat, vec_mlon], [radar.mcolat, radar.mlon], polar=True)
+			vec_azm = tools.cosine_rule([0, 0], [vec_mcolat, vec_mlon], [radar_mcolat, radar_mlon], polar=True)
 			#get radar azms
-			radar_azm = tools.cosine_rule([0, 0], [radar.mcolat, radar.mlon], [vec_mcolat, vec_mlon], polar=True)
+			radar_azm = tools.cosine_rule([0, 0], [radar_mcolat, radar_mlon], [vec_mcolat, vec_mlon], polar=True)
 			
-			if tools.lon_look(radar.mlon, vec_mlon) == "E":
+			if tools.lon_look(radar_mlon, vec_mlon) == "E":
 				radar_azm = -radar_azm
 			
 			self.vec_azms[i] = vec_azm
@@ -355,7 +362,7 @@ class GridData():
 		#radar
 		self.vec_azms = np.array(self.kvecs)
 		for i in range(len(self.vec_azms)):
- 			look_direction = self.station_metadata[self.stations[i]].look
+ 			look_direction = self.look[i]
  			vec_azm = self.vec_azms[i]
  			if look_direction == "E":
  					if vec_azm > 0:
