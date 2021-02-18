@@ -214,8 +214,7 @@ class GridData():
 			positive (default = True)
 		"""
 		
-		self.station_metadata[sname] = Station(sname)
-		self.mod = mod
+		self.mod = mod		
 		
 		start_YY = int(start_date[0:4])
 		start_MM = int(start_date[5:7])
@@ -245,7 +244,7 @@ class GridData():
 			else:
 				self.grid_data = self.data_files.read(data_file)
 			
-			#obtain individual sample
+			#obtain 2-min sample
 			for j in range(len(self.grid_data)):
 				self.sample = self.grid_data[j]
 			
@@ -258,7 +257,7 @@ class GridData():
 					los_vs = self.sample["vector.vel.median"]
 					los_e = self.sample["vector.vel.sd"]
 					look = np.array([])
-					
+					print("mlats =", mlats)
 					#access time
 					YY = int(self.sample["start.year"])
 					MM = int(self.sample["start.month"])
@@ -271,31 +270,41 @@ class GridData():
 					full_time = "{} {}".format(start_day, start_time)
 					dtime = dt.datetime(YY, MM, DD, hh, mm, ss)
 
-					#find which station data to use (time)
-					station = self.station_metadata[sname]
-					#calculate if the data point (mlon) is due east or
-					#west from the station
-					for i in range(len(mlats)):
-						#get station magnetic coordinates
-						station_mlat, station_mlon = station.get_aacgm(dtime)
-						#get look direction
-						look_direction = tools.lon_look(station_mlon, mlons[i])	
-						look = np.append(look, look_direction)
-					
-					#make sure kvecs are consistent between look directions
-					#(aka -ve kvecs are east look, +ve kvecs are west look)
-					#use los_v sign to denote direction of flow, negative 
-					#velocities = towards radar station.
-					for i in range(len(look)):
-						if not mod:
-							if look[i] == "E":
-								#for east look kvec always needs to be negative
-								if kvecs[i] < 0:
-									los_vs[i] = -los_vs[i]
-							elif look[i] == "W":
-								#for west look kvec always needs to be positive
-								if kvecs[i] > 0:
-									los_vs[i] = -los_vs[i]		
+					#add stop condition
+					if dtime > end_dtime:
+						break
+
+					#if using grid of all stations then we do not know which
+					#station the data belongs to
+					if sname != "all":
+
+						self.station_metadata[sname] = Station(sname)
+	
+						#find which station data to use (time)
+						station = self.station_metadata[sname]
+						#calculate if the data point (mlon) is due east or
+						#west from the station
+						for i in range(len(mlats)):
+							#get station magnetic coordinates
+							station_mlat, station_mlon = station.get_aacgm(dtime)
+							#get look direction
+							look_direction = tools.lon_look(station_mlon, mlons[i])	
+							look = np.append(look, look_direction)
+						
+						#make sure kvecs are consistent between look directions
+						#(aka -ve kvecs are east look, +ve kvecs are west look)
+						#use los_v sign to denote direction of flow, negative 
+						#velocities = towards radar station.
+						for i in range(len(look)):
+							if not mod:
+								if look[i] == "E":
+									#for east look kvec always needs to be negative
+									if kvecs[i] < 0:
+										los_vs[i] = -los_vs[i]
+								elif look[i] == "W":
+									#for west look kvec always needs to be positive
+									if kvecs[i] > 0:
+										los_vs[i] = -los_vs[i]		
 					
 					print("start_dtime", start_dtime)
 					print("dtime", dtime)
@@ -324,10 +333,13 @@ class GridData():
 		
 		print("station {} data added.".format(sname))
 		
+		return
+		
 	def get_azms(self):
 		
 		"""
-		Calculates both vector and radar azimuths for velocity data
+		Calculates both vector and radar azimuths for velocity data. ONLY WORKS
+		IF DATA HAS BEEN GIVEN AS INDIVIDUAL STATIONS
 		"""
 						
 		#calculate vector and radar azimuths from mag north, radar and vector points

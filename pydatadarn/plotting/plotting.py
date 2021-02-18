@@ -12,12 +12,13 @@ import datetime as dt
 import matplotlib as mpl
 import scipy.optimize as opt # for optimizing least square fit
 
+from pydatadarn.classes.station import Station
 from pydatadarn.utils import tools
 from pydatadarn.utils import coordinate_transformations as coords
 
-def vector_plot(mcolats, mlons, kvecs, los_vs, time, station_coords=[], 
-				station_names=False, mlt=True, mcolat_min=0, mcolat_max=50,
-				theta_min=0, theta_max=360):
+def vector_plot(mcolats, mlons, kvecs, los_vs, time, 
+				station_names=[], mlt=True, mcolat_min=0, mcolat_max=50,
+				theta_min=0, theta_max=360, cbar_min=-600, cbar_max=600):
 	
 	"""
 	Creates a polar plot of line of sight vectors
@@ -38,15 +39,10 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time, station_coords=[],
 	los_vs: float array
 		line of sight velocities (in m/s)
 		
-	station_coords: float array
-		array containing magnetic colatitude and longitude of stations to plot
-		onto vector plot. If multiple stations then use multiple rows for each
-		station e.g. np.array([no.stations, 2])
-		
 	station_names (optional): string array
 		array containing names of respective stations in station_coords
 		
-	time: dtime object, optional
+	time: str, optional
 		time of measurement, used to convert from magnetic longitude to 
 		magnetic local time (in format "YYYY/MM/DD HH:mm:ss"),
 		only needed if mlt = True
@@ -70,6 +66,12 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time, station_coords=[],
 		sets the maximum angle to be shown by the plot
 		(0, 90, 180, 270, 360 degrees = South, East, North, West, South 
 		   if viewing plot as a compass)
+		
+	cbar_min: float
+		sets the minimum value for the colourbar (default -600 m/s)
+		
+	cbar_max: float
+		sets the maximum value for the colourbar (default 600 m/s)
 		
 	"""
 	
@@ -114,7 +116,7 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time, station_coords=[],
 	ax.set_theta_offset(1.5*np.pi)
 	ax.set_xticks(np.linspace(0, 2*np.pi, 4, endpoint=False))
 
-	if mlt:
+	if mlt == True:
 		dtime = tools.time_to_dtime(time)
 		#convert mlons into mlts if so true
 		mlons = coords.aacgm_to_mlt(mlons, dtime)*15
@@ -127,7 +129,7 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time, station_coords=[],
 	ax.set_thetamax(theta_max)
 	
 	#Define normalised scale
-	cNorm = mpl.colors.Normalize(vmin=-600, vmax=600)
+	cNorm = mpl.colors.Normalize(vmin=cbar_min, vmax=cbar_max)
 
 	cm = mpl.cm.jet
 	#Create new axis at right hand side
@@ -137,17 +139,21 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time, station_coords=[],
 	fig.subplots_adjust(left=0.05, right=0.85)
 	
 	#plot stations
-	for i in range(len(station_coords)):
-		station = station_coords[i]
+	for i in range(len(station_names)):
+		#get station data
 		station_name = station_names[i]
-		station_mcolat = station[0]
-		station_mlon = station[1]
-		if mlt:
-			station_mlon = coords.aacgm_to_mlt(station_mlon, time)
+		station_hdw = Station(station_name)
+		#get station mcolat and mlon
+		station_mlat, station_mlon =  station_hdw.get_aacgm(dtime)
+		station_mcolat = 90-station_mlat
+		
+		if mlt == True:
+			station_mlon = coords.aacgm_to_mlt(station_mlon, dtime)*15
 			if isinstance(station_mlon, np.ndarray):
 				station_mlon = station_mlon[0]
-			ax.scatter(np.deg2rad(station_mlon), station_mcolat, 5)
-			ax.annotate(station_name, [np.deg2rad(station_mlon), station_mcolat])	
+				
+		ax.scatter(np.deg2rad(station_mlon), station_mcolat, 5)
+		ax.annotate(station_name, [np.deg2rad(station_mlon), station_mcolat])	
 	
 	#plot vectors
 	ax.quiver(np.deg2rad(mlons), mcolats, np.deg2rad(dtheta), dr, 
