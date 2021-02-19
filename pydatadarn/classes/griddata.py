@@ -26,9 +26,11 @@ luna_path_file = open("/home/elliott/Documents/python_analysis/luna_path.txt", "
 luna_path = luna_path_file.read()
 if luna_path[len(luna_path)-1:len(luna_path)] == "\n":
 	luna_path = luna_path[0:len(luna_path)-1]
-#paths for fitacf and grdmap files
+	
+#paths for fitacf and grid/map files
 fitacf_path = luna_path + "fitacf/"
-grdmap_path = luna_path + "users/daye1/Superdarn/Data/grid/"
+grid_path = luna_path + "users/daye1/Superdarn/Data/grid/"
+map_path = luna_path + "users/daye1/Superdarn/Data/map/"
 	
 class LoadGridmap:
 	
@@ -36,7 +38,7 @@ class LoadGridmap:
 	A class used to load fitacf data
 	"""
 	
-	def __init__(self, station, start_date, end_date):
+	def __init__(self, station, start_date, end_date, is_map=False):
 		
 		"""
 		Returns a list of all file names/paths to fitacf data between the 
@@ -53,6 +55,10 @@ class LoadGridmap:
 			
 		end_date: string
 			"YYYY/MM/DD/hh.mm.ss"
+			
+		is_map: bool (optional)
+			sets whether files are .grd (True) or .map (False) files 
+			(default = False)
 		"""
 		
 		#extract time parameters into [start, end]
@@ -60,10 +66,15 @@ class LoadGridmap:
 		MM = [int(start_date[5:7]), int(end_date[5:7])]
 		DD = [int(start_date[8:10]), int(end_date[8:10])]
 	
-		self.path = "{}{}/{}/{}/".format(grdmap_path, station, YY[0], MM[0])	
-		print(self.path)
-		
-		files = sorted(os.listdir(self.path))
+		print(is_map)
+		if is_map == False:
+			self.path = "{}{}/{}/{}/".format(grid_path, station, YY[0], MM[0])	
+			files = sorted(os.listdir(self.path))
+		else:
+			self.path = "{}{}/{}/".format(map_path, YY[0], MM[0])
+			all_files = sorted(os.listdir(self.path))
+			files = [i for i in all_files if "north" in i]
+
 		print(files)
 		num_files = len(files)
 		
@@ -78,15 +89,9 @@ class LoadGridmap:
 			if i == num_files:
 				bounds[1]=i
 				break
-			#files are named in format: YYYYMMDD.HHmm.ss.bks.fitacf.bz2
-		#	print("Checking file number {}...".format(i))
-			
-			print(files[i])
 			file_MM = int(files[i][4:6])
 			file_DD = int(files[i][6:8])
-			
-		#	print("file date = {:02d}/{:02d}".format(file_MM, file_DD))
-			
+
 			if not bound_start:
 				#check if day is within bound
 				if file_MM >= MM[0] and file_DD >= DD[0]:
@@ -104,21 +109,18 @@ class LoadGridmap:
 					bounds[1] = i
 						
 			if bound_end:
-				#print("Data retrieved between {} and {}".format(start_date, end_date))
 				break
-			
 			i += 1
 			
 		else: 
 			if not bound_start:
-				#print("No files were found between the entered dates")
 				return
 		
 		self.file_list = files[bounds[0]:bounds[1]]
 		
 		return
 	
-	def read(self, fname):
+	def read(self, fname, is_map=False):
 		
 		"""
 		Takes input fitacf file (fname) and returns the data from the file
@@ -133,11 +135,14 @@ class LoadGridmap:
 		fname = self.path+fname
 		
 		file_data = pydarn.SDarnRead(fname)
-		grid_data = file_data.read_grid()
+		if is_map == False:
+			grid_data = file_data.read_grid()
+		else:
+			grid_data = file_data.read_map()
 		
 		return grid_data
 	
-	def read_bz2(self, fname):
+	def read_bz2(self, fname, is_map=False):
 		
 		"""
 		Takes input fitacf.bz2 file (fname) and returns the data from the file
@@ -155,11 +160,13 @@ class LoadGridmap:
 			bz2_stream = fp.read()
 			
 		file_data = pydarn.SDarnRead(bz2_stream, True)
-		grid_data = file_data.read_grid()
+		if is_map == False:
+			grid_data = file_data.read_grid()
+		else:
+			grid_data = file_data.read_map()
 		
 		return grid_data
 	
-
 class GridData():
 	
 	"""
@@ -168,11 +175,15 @@ class GridData():
 	Parameters
 	----------
 	
-	None
+	is_map: bool (optional)
+		sets whether files are .grd (True) or .map (False) files 
+		(default = False)
 	
 	"""
-	def __init__(self):
+	
+	def __init__(self, is_map=False):
 
+		self.is_map = is_map
 		self.station_metadata = dict() # dictionary to store information for each station
 		self.stations = np.array([]) # store which station data comes from
 		self.mlats = np.array([])
@@ -184,8 +195,23 @@ class GridData():
 		self.times = np.array([]) # store time as a string
 		self.dtimes = np.array([]) # store time as a datetime object
 		
+		#if this is map data then add extra arrays
+		if is_map == True:
+			self.imfBx = np.array([])
+			self.imfBy = np.array([])
+			self.imfBz = np.array([])
+			self.imfTilt = np.array([])
+			self.boundary_mlats = np.array([])
+			self.boundary_mlons = np.array([])
+			self.mod_kvecs = np.array([])
+			self.mod_mlats = np.array([])
+			self.mod_mlons = np.array([])
+			self.mod_los_vs = np.array([])
+			self.mod_times = np.array([])
+			self.mod_dtimes = np.array([])
+			
+		
 		return
-	
 	
 	def add_data(self, sname, start_date, end_date, mod=True, get_rad_azms=True):
 		
@@ -234,15 +260,17 @@ class GridData():
 							start_mm, start_ss)
 		end_dtime = dt.datetime(end_YY, end_MM, end_DD, end_HH, end_mm, end_ss)
 		
-		self.data_files = LoadGridmap(str(sname), start_date, end_date)
+		self.data_files = LoadGridmap(str(sname), start_date, end_date, self.is_map)
 		
 		#access data in files
 		for i in range(len(self.data_files.file_list)):
+			
 			data_file = self.data_files.file_list[i]
+			
 			if data_file[len(data_file)-4:] == ".bz2":
-				self.grid_data = self.data_files.read_bz2(data_file)
+				self.grid_data = self.data_files.read_bz2(data_file, self.is_map)
 			else:
-				self.grid_data = self.data_files.read(data_file)
+				self.grid_data = self.data_files.read(data_file, self.is_map)
 			
 			#obtain 2-min sample
 			for j in range(len(self.grid_data)):
@@ -256,8 +284,20 @@ class GridData():
 					kvecs = self.sample["vector.kvect"]
 					los_vs = self.sample["vector.vel.median"]
 					los_e = self.sample["vector.vel.sd"]
-					look = np.array([])
-					print("mlats =", mlats)
+					
+					if self.is_map == True:
+						
+						imfBx = self.sample["IMF.Bx"]
+						imfBy = self.sample["IMF.By"]
+						imfBz = self.sample["IMF.Bz"]
+						imfTilt = self.sample["IMF.tilt"]
+						boundary_mlats = self.sample["boundary.mlat"]
+						boundary_mlons = self.sample["boundary.mlon"]
+						mod_mlats = self.sample["model.mlat"]
+						mod_mlons = self.sample["model.mlon"]
+						mod_kvecs = self.sample["model.kvect"]
+						mod_los_vs = self.sample["model.vel.median"]
+
 					#access time
 					YY = int(self.sample["start.year"])
 					MM = int(self.sample["start.month"])
@@ -277,7 +317,8 @@ class GridData():
 					#if using grid of all stations then we do not know which
 					#station the data belongs to
 					if sname != "all":
-
+						
+						look = np.array([])
 						self.station_metadata[sname] = Station(sname)
 	
 						#find which station data to use (time)
@@ -317,11 +358,30 @@ class GridData():
 						self.kvecs = np.append(self.kvecs, kvecs)
 						self.los_vs = np.append(self.los_vs, los_vs)
 						self.los_e = np.append(self.los_e, los_e)
-						self.look = np.append(self.look, look)
+						
+						if sname != "all":
+							self.look = np.append(self.look, look)
+							
 						for i in range(len(mlats)):
 							self.times = np.append(self.times, full_time)
 							self.dtimes = np.append(self.dtimes, dtime)
 							self.stations = np.append(self.stations, sname)
+						
+						if self.is_map == True:
+							self.imfBx = np.append(self.imfBx, imfBx)
+							self.imfBy = np.append(self.imfBy, imfBy)
+							self.imfBz = np.append(self.imfBz, imfBz)
+							self.imfTilt = np.append(self.imfTilt, imfTilt)
+							self.boundary_mlats = np.append(self.boundary_mlats, boundary_mlats)
+							self.boundary_mlons = np.append(self.boundary_mlons, boundary_mlons)
+							self.mod_mlats = np.append(self.mod_mlats, mod_mlats)
+							self.mod_mlons = np.append(self.mod_mlons, mod_mlons)
+							self.mod_kvecs = np.append(self.mod_kvecs, mod_kvecs)
+							self.mod_los_vs = np.append(self.mod_los_vs, mod_los_vs)
+							for i in range(len(mod_mlats)):
+								self.mod_times = np.append(self.mod_times, full_time)
+								self.mod_dtimes = np.append(self.mod_dtimes, dtime)
+						
 					else:
 						print("time not within bounds")
 					
@@ -331,7 +391,8 @@ class GridData():
 		#calculate magnetic colatitudes
 		self.mcolats = 90-self.mlats
 		
-		print("station {} data added.".format(sname))
+		if self.is_map == True:
+			self.mod_mcolats = 90 - self.mod_mlats
 		
 		return
 		

@@ -102,8 +102,6 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	dr = np.rad2deg(vec_colat) - mcolats
 	dtheta = np.rad2deg(vec_lon - np.deg2rad(mlons))
 	
-	print(dr[0:10], dtheta[0:10])
-	
 	####################
 	# Plot the vectors #
 	####################
