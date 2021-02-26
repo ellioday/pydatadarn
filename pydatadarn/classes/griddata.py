@@ -194,18 +194,27 @@ class GridData():
 		
 		#if this is map data then add extra arrays
 		if is_map == True:
-			self.imfBx = np.array([])
-			self.imfBy = np.array([])
-			self.imfBz = np.array([])
-			self.imfTilt = np.array([])
-			self.boundary_mlats = np.array([])
-			self.boundary_mlons = np.array([])
-			self.mod_kvecs = np.array([])
-			self.mod_mlats = np.array([])
-			self.mod_mlons = np.array([])
-			self.mod_los_vs = np.array([])
-			self.mod_times = np.array([])
-			self.mod_dtimes = np.array([])
+			self.order = dict()
+			self.N = dict()
+			self.N1 = dict()
+			self.N2 = dict()
+			self.N3 = dict()
+			self.imfBx = dict()
+			self.imfBy = dict()
+			self.imfBz = dict()
+			self.imfTilt = dict()
+			self.boundary_mlats = dict()
+			self.boundary_mlons = dict()
+			self.mod_kvecs = dict()
+			self.mod_mlats = dict()
+			self.mod_mcolats = dict()
+			self.mod_mlons = dict()
+			self.mod_los_vs = dict()
+			self.mod_times = dict()
+			self.mod_dtimes = dict()
+			self.latmin = dict()
+			self.lon_shft = dict()
+			self.lat_shft = dict()
 			
 		return
 	
@@ -286,6 +295,11 @@ class GridData():
 					
 					if self.is_map == True:
 						
+						order = self.sample["fit.order"]
+						N = self.sample["N"]
+						N1 = self.sample["N+1"]
+						N2 = self.sample["N+2"]
+						N3 = self.sample["N+3"]
 						imfBx = self.sample["IMF.Bx"]
 						imfBy = self.sample["IMF.By"]
 						imfBz = self.sample["IMF.Bz"]
@@ -296,6 +310,9 @@ class GridData():
 						mod_mlons = self.sample["model.mlon"]
 						mod_kvecs = self.sample["model.kvect"]
 						mod_los_vs = self.sample["model.vel.median"]
+						latmin = self.sample["latmin"]
+						lon_shft = self.sample["lon.shft"]
+						lat_shft = self.sample["lat.shft"]
 
 					#access time
 					YY = int(self.sample["start.year"])
@@ -352,19 +369,26 @@ class GridData():
 							self.look = np.append(self.look, look)
 						
 						if self.is_map == True:
-							self.imfBx = np.append(self.imfBx, imfBx)
-							self.imfBy = np.append(self.imfBy, imfBy)
-							self.imfBz = np.append(self.imfBz, imfBz)
-							self.imfTilt = np.append(self.imfTilt, imfTilt)
-							self.boundary_mlats = np.append(self.boundary_mlats, boundary_mlats)
-							self.boundary_mlons = np.append(self.boundary_mlons, boundary_mlons)
-							self.mod_mlats = np.append(self.mod_mlats, mod_mlats)
-							self.mod_mlons = np.append(self.mod_mlons, mod_mlons)
-							self.mod_kvecs = np.append(self.mod_kvecs, mod_kvecs)
-							self.mod_los_vs = np.append(self.mod_los_vs, mod_los_vs)
-							for i in range(len(mod_mlats)):
-								self.mod_times = np.append(self.mod_times, full_time)
-								self.mod_dtimes = np.append(self.mod_dtimes, dtime)
+							self.order[full_time] = order
+							self.N[full_time] = N
+							self.N1[full_time] = N1
+							self.N2[full_time] = N2
+							self.N3[full_time] = N3
+							self.imfBx[full_time] = imfBx
+							self.imfBy[full_time] = imfBy
+							self.imfBz[full_time] = imfBz
+							self.imfTilt[full_time] = imfTilt
+							self.boundary_mlats[full_time] = boundary_mlats
+							self.boundary_mlons[full_time] = boundary_mlons
+							self.mod_mlats[full_time] = mod_mlats
+							self.mod_mcolats[full_time] = 90 - mod_mlats
+							self.mod_mlons[full_time] = mod_mlons
+							self.mod_kvecs[full_time] = mod_kvecs
+							self.mod_los_vs[full_time] = mod_los_vs
+							self.latmin[full_time] = latmin
+							self.lon_shft[full_time] = lon_shft
+							self.lat_shft[full_time] = lat_shft
+							self.mod_dtimes[full_time] = dtime
 						
 					else:
 						print("time not within bounds")
@@ -374,9 +398,6 @@ class GridData():
 		
 		#calculate magnetic colatitudes
 		self.mcolats = 90-self.mlats
-		
-		if self.is_map == True:
-			self.mod_mcolats = 90 - self.mod_mlats
 		
 		return
 		
