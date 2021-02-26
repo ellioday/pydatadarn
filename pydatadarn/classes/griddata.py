@@ -10,12 +10,8 @@ import os
 import pydarn
 import bz2
 
-import scipy.optimize as opt # for optimizing least square fit
-
 import numpy as np
 import datetime as dt
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 
 from pydatadarn.utils import tools
 from pydatadarn.utils import coordinate_transformations as coords
@@ -66,7 +62,6 @@ class LoadGridmap:
 		MM = [int(start_date[5:7]), int(end_date[5:7])]
 		DD = [int(start_date[8:10]), int(end_date[8:10])]
 	
-		print(is_map)
 		if is_map == False:
 			self.path = "{}{}/{}/{}/".format(grid_path, station, YY[0], MM[0])	
 			files = sorted(os.listdir(self.path))
@@ -74,6 +69,8 @@ class LoadGridmap:
 			self.path = "{}{}/{}/".format(map_path, YY[0], MM[0])
 			all_files = sorted(os.listdir(self.path))
 			files = [i for i in all_files if "north" in i]
+			
+		print(self.path)	
 
 		print(files)
 		num_files = len(files)
@@ -210,7 +207,6 @@ class GridData():
 			self.mod_times = np.array([])
 			self.mod_dtimes = np.array([])
 			
-		
 		return
 	
 	def add_data(self, sname, start_date, end_date, mod=True, get_rad_azms=True):
@@ -279,6 +275,9 @@ class GridData():
 				#get data
 				try:
 
+					#los_v is +ve if pointing Westwards
+					#los_v is -ve if pointing Eastwards					
+
 					mlats = self.sample["vector.mlat"]
 					mlons = self.sample["vector.mlon"]
 					kvecs = self.sample["vector.kvect"]
@@ -310,7 +309,9 @@ class GridData():
 					full_time = "{} {}".format(start_day, start_time)
 					dtime = dt.datetime(YY, MM, DD, hh, mm, ss)
 
-					#add stop condition
+					#add skip and start condition
+					if dtime < start_dtime:
+						continue
 					if dtime > end_dtime:
 						break
 
@@ -330,22 +331,7 @@ class GridData():
 							station_mlat, station_mlon = station.get_aacgm(dtime)
 							#get look direction
 							look_direction = tools.lon_look(station_mlon, mlons[i])	
-							look = np.append(look, look_direction)
-						
-						#make sure kvecs are consistent between look directions
-						#(aka -ve kvecs are east look, +ve kvecs are west look)
-						#use los_v sign to denote direction of flow, negative 
-						#velocities = towards radar station.
-						for i in range(len(look)):
-							if not mod:
-								if look[i] == "E":
-									#for east look kvec always needs to be negative
-									if kvecs[i] < 0:
-										los_vs[i] = -los_vs[i]
-								elif look[i] == "W":
-									#for west look kvec always needs to be positive
-									if kvecs[i] > 0:
-										los_vs[i] = -los_vs[i]		
+							look = np.append(look, look_direction)	
 					
 					print("start_dtime", start_dtime)
 					print("dtime", dtime)
@@ -358,14 +344,12 @@ class GridData():
 						self.kvecs = np.append(self.kvecs, kvecs)
 						self.los_vs = np.append(self.los_vs, los_vs)
 						self.los_e = np.append(self.los_e, los_e)
-						
-						if sname != "all":
-							self.look = np.append(self.look, look)
-							
 						for i in range(len(mlats)):
 							self.times = np.append(self.times, full_time)
 							self.dtimes = np.append(self.dtimes, dtime)
 							self.stations = np.append(self.stations, sname)
+						if sname != "all":
+							self.look = np.append(self.look, look)
 						
 						if self.is_map == True:
 							self.imfBx = np.append(self.imfBx, imfBx)
@@ -401,11 +385,15 @@ class GridData():
 		"""
 		Calculates both vector and radar azimuths for velocity data. ONLY WORKS
 		IF DATA HAS BEEN GIVEN AS INDIVIDUAL STATIONS
+		
+		also converts los_vs so that instead of -ve = eastwards and +ve = westwards
+		now, -ve = towards radar and +ve = away,
 		"""
 						
 		#calculate vector and radar azimuths from mag north, radar and vector points
 		self.vec_azms = np.empty(len(self.kvecs))
 		self.rad_azms = np.empty(len(self.kvecs))
+		self.los_vs_rad_point = np.empty(len(self.kvecs))
 		for i in range(len(self.vec_azms)):
 
 			#get radar 
@@ -418,17 +406,22 @@ class GridData():
 			#get vector position and azimuth
 			vec_mcolat = self.mcolats[i]
 			vec_mlon = self.mlons[i]
+			los_vs_rad_point = self.los_vs[i]
 			
 			#get vector azms
 			vec_azm = tools.cosine_rule([0, 0], [vec_mcolat, vec_mlon], [radar_mcolat, radar_mlon], polar=True)
 			#get radar azms
 			radar_azm = tools.cosine_rule([0, 0], [radar_mcolat, radar_mlon], [vec_mcolat, vec_mlon], polar=True)
+			#get look direction from radar to los measurement
+			radar_look = tools.lon_look(radar_mlon, vec_mlon)
 			
-			if tools.lon_look(radar_mlon, vec_mlon) == "E":
+			if radar_look == "E":
 				radar_azm = -radar_azm
+				los_vs_rad_point = -los_vs_rad_point
 			
 			self.vec_azms[i] = vec_azm
 			self.rad_azms[i] = radar_azm
+			self.los_vs_rad_point[i] = los_vs_rad_point
 			
 		#calculate vector azimuths from kvector
 		#(-ve vec_azms are east look, +ve vec_azms are west look)
@@ -474,7 +467,12 @@ class GridData():
 		data_dict["los_e"] = self.los_e[indexes]
 		data_dict["times"] = self.times[indexes]
 		data_dict["dtimes"] = self.dtimes[indexes]
-		data_dict["vec_azms"] = self.vec_azms[indexes]
-		data_dict["rad_azms"] = self.rad_azms[indexes]
+		try:
+			data_dict["vec_azms"] = self.vec_azms[indexes]
+			data_dict["rad_azms"] = self.rad_azms[indexes]
+			data_dict["los_vs_rad_point"] = self.los_vs_rad_point[indexes]
+		except:
+			0
+		data_dict["snames"] = self.stations[indexes]
 		
 		return data_dict

@@ -64,11 +64,8 @@ class Station():
 				elif line[0] == "#":
 					continue
 				else:
-					print(line)
-					print(len(line))
 					#add data to arrays
 					data = line.split()
-					print(data)
 					self.stat_id = np.append(self.stat_id, int(data[0]))
 					
 					#if final entry for year is a ridiculously large number

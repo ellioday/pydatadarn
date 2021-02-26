@@ -160,7 +160,7 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	
 	plt.show()
 
-	return
+	return dr, dtheta
 	
 def los_fit(azimuths, los_vs, time, resolution=100, mcolat_range=False, station_names=False, plot=False):	
 	
@@ -227,7 +227,7 @@ def los_fit(azimuths, los_vs, time, resolution=100, mcolat_range=False, station_
 		fig, ax = plt.subplots(1, 1, figsize=[6, 6])
 		
 		#get indexes for location of stations
-		if station_names:
+		if station_names != False:
 			
 			#get each unique station
 			unique_stations = np.unique(station_names)
