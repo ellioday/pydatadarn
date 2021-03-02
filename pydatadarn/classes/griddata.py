@@ -326,7 +326,7 @@ class GridData():
 					full_time = "{} {}".format(start_day, start_time)
 					dtime = dt.datetime(YY, MM, DD, hh, mm, ss)
 
-					#add skip and start condition
+					#add skip and stop condition
 					if dtime < start_dtime:
 						continue
 					if dtime > end_dtime:

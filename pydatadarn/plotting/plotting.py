@@ -16,9 +16,12 @@ from pydatadarn.classes.station import Station
 from pydatadarn.utils import tools
 from pydatadarn.utils import coordinate_transformations as coords
 
+import fpipy
+
 def vector_plot(mcolats, mlons, kvecs, los_vs, time, 
-				station_names=[], mlt=True, mcolat_min=0, mcolat_max=50,
-				theta_min=0, theta_max=360, cbar_min=-600, cbar_max=600):
+				station_names=[], FPI_names=[], mlt=True, mcolat_min=0, 
+				mcolat_max=50, theta_min=0, theta_max=360, cbar_min=-600, 
+				cbar_max=600):
 	
 	"""
 	Creates a polar plot of line of sight vectors
@@ -46,6 +49,12 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		time of measurement, used to convert from magnetic longitude to 
 		magnetic local time (in format "YYYY/MM/DD HH:mm:ss"),
 		only needed if mlt = True
+		
+	station_names (optional): str array
+		array of names of superDARN stations to plot		
+		
+	FPI_names (optional): str array
+		array of names of FPI stations to plot		
 
 	mlt (optional): bool
 		sets whether to convert from magnetic longitude into local time 
@@ -152,6 +161,22 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 				
 		ax.scatter(np.deg2rad(station_mlon), station_mcolat, 5)
 		ax.annotate(station_name, [np.deg2rad(station_mlon), station_mcolat])	
+		
+	for i in range(len(FPI_names)):
+		#get FPI data
+		FPI_name = FPI_names[i]
+		FPI_hdw = fpipy.FPIStation(FPI_name)
+		#get station mcolat and mlon
+		FPI_mlat, FPI_mlon = FPI_hdw.get_aacgm(dtime)
+		FPI_mcolat = 90-station_mlat
+		
+		if mlt == True:
+			FPI_mlon = coords.aacgm_to_mlt(FPI_mlon, dtime)*15
+			if isinstance(FPI_mlon, np.ndarray):
+				FPI_mlon = FPI_mlon[0]
+				
+		ax.scatter(np.deg2rad(FPI_mlon), FPI_mcolat, marker="^", s=5)
+		ax.annotate(FPI_name, [np.deg2rad(FPI_mlon), FPI_mcolat])
 	
 	#plot vectors
 	ax.quiver(np.deg2rad(mlons), mcolats, np.deg2rad(dtheta), dr, 
@@ -265,3 +290,9 @@ def los_fit(azimuths, los_vs, time, resolution=100, mcolat_range=False, station_
 		plt.show()
 	
 	return w
+
+def ion_neutral_wind_plot(ion_coords, neutral_coords, FPI_coord, ion_vel, neutral_vel):
+	
+	"""
+	Plots
+	"""

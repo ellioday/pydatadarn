@@ -76,6 +76,9 @@ def geo_to_aacgm(lat, lon, time, alt=0):
 	time: datetime object
 		datetime object of format datetime.datetime(YY, MM, DD, hh, mm, ss)
 		
+	alt: float (optional, default = 0)
+		altitude in km
+		
 	Returns
 	-------
 	
