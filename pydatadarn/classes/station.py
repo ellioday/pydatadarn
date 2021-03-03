@@ -123,5 +123,9 @@ class Station():
 
 		#get mlat and mlon
 		mlat, mlon = coords.geo_to_aacgm(glat, glon, dtime, alt)
+		if isinstance(mlat, np.ndarray):
+			mlat = mlat[0]
+		if isinstance(mlon, np.ndarray):
+			mlon = mlon[0]
 		
 		return mlat, mlon

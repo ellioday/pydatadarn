@@ -13,15 +13,15 @@ import matplotlib as mpl
 import scipy.optimize as opt # for optimizing least square fit
 
 from pydatadarn.classes.station import Station
-from pydatadarn.utils import tools
+from pydatadarn.utils import tools as tools
 from pydatadarn.utils import coordinate_transformations as coords
 
 import fpipy
 
 def vector_plot(mcolats, mlons, kvecs, los_vs, time, 
-				station_names=[], FPI_names=[], mlt=True, mcolat_min=0, 
-				mcolat_max=50, theta_min=0, theta_max=360, cbar_min=-600, 
-				cbar_max=600):
+				station_names=[], FPI_names=[], FPI_kvecs=[], FPI_vels=[], 
+				mlt=True, mcolat_min=0, mcolat_max=50, theta_min=0, 
+				theta_max=360, cbar_min=-600, cbar_max=600):
 	
 	"""
 	Creates a polar plot of line of sight vectors
@@ -54,7 +54,13 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		array of names of superDARN stations to plot		
 		
 	FPI_names (optional): str array
-		array of names of FPI stations to plot		
+		array of names of FPI stations to plot	
+		
+	FPI_kvecs (optional): str array
+		array of 2d Neutral vector kvectors (in same order as FPI_names)
+		
+	FPI_vels (optional): str array
+		array of 2d neutral vector velocities (in same order as FPI_names)
 
 	mlt (optional): bool
 		sets whether to convert from magnetic longitude into local time 
@@ -83,33 +89,6 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		sets the maximum value for the colourbar (default 600 m/s)
 		
 	"""
-	
-	###############################################
-	# calculate the change in dr/dtheta for vectors
-	##############################################
-	
-	#calculate scale length
-	vec_len = 2*500*abs(los_vs/6371e3)
-	
-	#obtain longitude and kvector in radians
-	lon_rad = np.deg2rad(mlons)
-	vec_azm = np.deg2rad(kvecs)
-	
-	#find latitude at end of vector
-	colat = np.deg2rad(mcolats)
-	cos_colat = np.cos(vec_len)*np.cos(colat) + np.sin(vec_len)*np.sin(colat)*np.cos(vec_azm)
-	vec_colat = np.arccos(cos_colat)
-	
-	#find longitude of end of vector
-	cos_dlon = (np.cos(vec_len)-np.cos(vec_colat)*np.cos(colat))/(np.sin(vec_colat)*np.sin(colat))
-	delta_lon = np.arccos(cos_dlon)
-	for i in range(len(vec_azm)):
-		if vec_azm[i] < 0: delta_lon[i] = -delta_lon[i]
-	vec_lon = lon_rad+delta_lon
-	
-	#calculate change in colatitude and angle (both in degrees)
-	dr = np.rad2deg(vec_colat) - mcolats
-	dtheta = np.rad2deg(vec_lon - np.deg2rad(mlons))
 	
 	####################
 	# Plot the vectors #
@@ -162,13 +141,27 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		ax.scatter(np.deg2rad(station_mlon), station_mcolat, 5)
 		ax.annotate(station_name, [np.deg2rad(station_mlon), station_mcolat])	
 		
+	print("len(FPI_names)", len(FPI_names))	
+	FPI_mcolats = np.empty(len(FPI_names))
+	FPI_mlons = np.empty(len(FPI_names))	
+		
 	for i in range(len(FPI_names)):
 		#get FPI data
 		FPI_name = FPI_names[i]
+		print("i", FPI_name)
 		FPI_hdw = fpipy.FPIStation(FPI_name)
 		#get station mcolat and mlon
 		FPI_mlat, FPI_mlon = FPI_hdw.get_aacgm(dtime)
-		FPI_mcolat = 90-station_mlat
+		print("FPI_mlat", FPI_mlat)
+		print("FPI_mlon", FPI_mlon)
+		FPI_mcolat = 90-FPI_mlat
+		print("FPI_mcolat", FPI_mcolat)
+		
+		FPI_mcolats[i] = FPI_mcolat
+		FPI_mlons[i] = FPI_mlon
+		print("FPI_mcolats", FPI_mcolats)
+		print("FPI_mlons", FPI_mlons)
+		print("\n")
 		
 		if mlt == True:
 			FPI_mlon = coords.aacgm_to_mlt(FPI_mlon, dtime)*15
@@ -177,6 +170,34 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 				
 		ax.scatter(np.deg2rad(FPI_mlon), FPI_mcolat, marker="^", s=5)
 		ax.annotate(FPI_name, [np.deg2rad(FPI_mlon), FPI_mcolat])
+	
+	print("FPI_mcolats", FPI_mcolats)
+	print("FPI_mlons", FPI_mlons)
+	
+	###############################################
+	# calculate the change in dr/dtheta for vectors
+	##############################################
+	
+	print("superDARN changes...")
+	dr, dtheta = tools.vector_change(mcolats, mlons, los_vs, kvecs)
+	
+	#FPI's and superDARN use opposite signs for kvectors so standardise
+	#FPI_kvecs = -FPI_kvecs
+	
+	print("FPI changes...")
+	if len(FPI_kvecs) > 0:
+		FPI_dr, FPI_dtheta = tools.vector_change(FPI_mcolats, FPI_mlons, FPI_vels, FPI_kvecs)	
+	
+	#################
+	# Make the Plot #
+	#################
+	
+		
+	if len(FPI_kvecs) > 0:
+		#plot vectors
+		ax.quiver(np.deg2rad(FPI_mlons), FPI_mcolats, np.deg2rad(FPI_dtheta), FPI_dr, 
+			width=0.0045, color=cm(cNorm(los_vs)), angles="xy", 
+			scale_units="xy", scale=1)	
 	
 	#plot vectors
 	ax.quiver(np.deg2rad(mlons), mcolats, np.deg2rad(dtheta), dr, 
@@ -290,9 +311,3 @@ def los_fit(azimuths, los_vs, time, resolution=100, mcolat_range=False, station_
 		plt.show()
 	
 	return w
-
-def ion_neutral_wind_plot(ion_coords, neutral_coords, FPI_coord, ion_vel, neutral_vel):
-	
-	"""
-	Plots
-	"""

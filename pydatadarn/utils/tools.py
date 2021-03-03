@@ -208,3 +208,46 @@ def time_to_dtime(date):
 
 		return dtimes
 	
+def vector_change(mcolats, mlons, los_vs, kvecs):
+	
+	"""
+	Calculates the change in r and theta (polar coords) for a given vector
+	
+	mcolats: flt array
+		colatitudes of vector location (degrees)
+		
+	mlons: flt array
+		longitudes of vector location (degrees)
+		
+	los_vs: flt array
+		magnitudes of vectors (m/s)
+		
+	kvecs: flt array
+		kvectors of vectors (degrees)
+		
+	"""
+	
+	#calculate scale length
+	vec_len = 2*500*abs(los_vs/6371e3)
+	
+	#obtain longitude and kvector in radians
+	lon_rad = np.deg2rad(mlons)
+	vec_azm = np.deg2rad(kvecs)
+	
+	#find latitude at end of vector
+	colat = np.deg2rad(mcolats)
+	cos_colat = np.cos(vec_len)*np.cos(colat) + np.sin(vec_len)*np.sin(colat)*np.cos(vec_azm)
+	vec_colat = np.arccos(cos_colat)
+	
+	#find longitude of end of vector
+	cos_dlon = (np.cos(vec_len)-np.cos(vec_colat)*np.cos(colat))/(np.sin(vec_colat)*np.sin(colat))
+	delta_lon = np.arccos(cos_dlon)
+	for i in range(len(vec_azm)):
+		if vec_azm[i] < 0: delta_lon[i] = -delta_lon[i]
+	vec_lon = lon_rad+delta_lon
+	
+	#calculate change in colatitude and angle (both in degrees)
+	dr = np.rad2deg(vec_colat) - mcolats
+	dtheta = np.rad2deg(vec_lon - np.deg2rad(mlons))
+	
+	return dr, dtheta
