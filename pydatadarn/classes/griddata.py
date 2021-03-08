@@ -530,4 +530,28 @@ class GridData():
 			0
 		data_dict["snames"] = self.stations[indexes]
 		
+		if self.is_map == True:
+		
+			data_dict["order"] = self.order[time]
+			data_dict["N"] = self.N[time]
+			data_dict["N1"] = self.N1[time]
+			data_dict["N2"] = self.N2[time]
+			data_dict["N3"] = self.N3[time]
+			data_dict["imfBx"] = self.imfBx[time]
+			data_dict["imfBy"] = self.imfBy[time]
+			data_dict["imfBz"] = self.imfBz[time]
+			data_dict["imfTilt"] = self.imfTilt[time]
+			data_dict["boundary_mlats"] = self.boundary_mlats[time]
+			data_dict["boundary_mlons"] = self.boundary_mlons[time]
+			data_dict["mod_kvecs"] = self.mod_kvecs[time]
+			data_dict["mod_mlats"] = self.mod_mlats[time]
+			data_dict["mod_mcolats"] = self.mod_mcolats[time]
+			data_dict["mod_mlons"] = self.mod_mlons[time]
+			data_dict["mod_los_vs"] = self.mod_los_vs[time]
+			data_dict["mod_times"] = self.mod_times[time]
+			data_dict["mod_dtimes"] = self.mod_dtimes[time]
+			data_dict["latmin"] = self.latmin[time]
+			data_dict["lon_shft"] = self.lon_shft[time]
+			data_dict["lat_shft"] = self.lat_shft[time]			 
+		
 		return data_dict
