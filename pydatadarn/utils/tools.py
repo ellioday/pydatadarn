@@ -228,7 +228,7 @@ def vector_change(mcolats, mlons, los_vs, kvecs):
 	"""
 	
 	#calculate scale length
-	vec_len = 2*500*np.cos(los_vs)/6371e3
+	vec_len = 2*500*los_vs/6371e3
 	
 	#obtain longitude and kvector in radians
 	lon_rad = np.deg2rad(mlons)

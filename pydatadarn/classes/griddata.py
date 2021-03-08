@@ -548,7 +548,7 @@ class GridData():
 			data_dict["mod_mcolats"] = self.mod_mcolats[time]
 			data_dict["mod_mlons"] = self.mod_mlons[time]
 			data_dict["mod_los_vs"] = self.mod_los_vs[time]
-			data_dict["mod_times"] = self.mod_times[time]
+			data_dict["mod_times"] = time
 			data_dict["mod_dtimes"] = self.mod_dtimes[time]
 			data_dict["latmin"] = self.latmin[time]
 			data_dict["lon_shft"] = self.lon_shft[time]
