@@ -176,10 +176,6 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	print("FPI_kvecs", FPI_kvecs)
 	
 	if len(FPI_kvecs) > 0:
-		#FPI Kvecs are opposite to superdarn so standardise:
-		#FPI(-90=W, 90=E) superDARN(-90=E, 90=W)
-		print("standardising kvectors")
-		FPI_kvecs=-FPI_kvecs
 		FPI_dr, FPI_dtheta = tools.vector_change(FPI_mcolats, FPI_mlons, FPI_vels, FPI_kvecs)	
 	
 		print("FPI_dr", FPI_dr)

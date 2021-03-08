@@ -94,7 +94,6 @@ def cosine_rule(A, B, C, polar=False):
 		
 	elif polar:
 		
-		
 		c = math.sqrt(A[0]**2 + B[0]**2 - 2*A[0]*B[0]*np.cos(np.deg2rad(B[1]-A[1])))
 		b = math.sqrt(A[0]**2 + C[0]**2 - 2*A[0]*C[0]*np.cos(np.deg2rad(C[1]-A[1])))
 		a = math.sqrt(B[0]**2 + C[0]**2 - 2*B[0]*C[0]*np.cos(np.deg2rad(C[1]-B[1])))
@@ -267,3 +266,16 @@ def lon360_to_180(lon):
 	remainder = (lon+180) % 360
 	
 	return remainder - 180
+
+def lon180_to_360(lon):
+	"""
+	Converts the given longitude from -180->180 to 0->360
+	
+	Parameters
+	----------
+	
+	lon: float
+		longitude to convert
+	"""
+	
+	return lon % 360
