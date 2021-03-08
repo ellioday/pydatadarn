@@ -497,3 +497,37 @@ class GridData():
 		data_dict["snames"] = self.stations[indexes]
 		
 		return data_dict
+
+	def get_time_data(self, time):
+		
+		"""
+		Returns a dictionary of all data captured at a particular time
+		
+		Parameters
+		----------
+		
+		time: string
+			time to retrieve data for (YYYY/MM/DD hh:mm:ss)
+		"""
+		
+		indexes = np.where(self.times == time)
+		
+		data_dict = dict()
+		data_dict["mlats"] = self.mlats[indexes]
+		data_dict["mcolats"] = self.mcolats[indexes]
+		data_dict["mlons"] = self.mlons[indexes]
+		data_dict["kvecs"] = self.kvecs[indexes]
+		data_dict["los_vs"] = self.los_vs[indexes]
+		data_dict["los_e"] = self.los_e[indexes]
+		data_dict["times"] = self.times[indexes]
+		data_dict["dtimes"] = self.dtimes[indexes]
+		data_dict["stations"] = self.stations[indexes]
+		try:
+			data_dict["vec_azms"] = self.vec_azms[indexes]
+			data_dict["rad_azms"] = self.rad_azms[indexes]
+			data_dict["los_vs_rad_point"] = self.los_vs_rad_point[indexes]
+		except:
+			0
+		data_dict["snames"] = self.stations[indexes]
+		
+		return data_dict

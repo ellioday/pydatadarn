@@ -141,38 +141,27 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		ax.scatter(np.deg2rad(station_mlon), station_mcolat, 5)
 		ax.annotate(station_name, [np.deg2rad(station_mlon), station_mcolat])	
 		
-	print("len(FPI_names)", len(FPI_names))	
 	FPI_mcolats = np.empty(len(FPI_names))
 	FPI_mlons = np.empty(len(FPI_names))	
 		
 	for i in range(len(FPI_names)):
 		#get FPI data
 		FPI_name = FPI_names[i]
-		print("i", FPI_name)
 		FPI_hdw = fpipy.FPIStation(FPI_name)
 		#get station mcolat and mlon
 		FPI_mlat, FPI_mlon = FPI_hdw.get_aacgm(dtime)
-		print("FPI_mlat", FPI_mlat)
-		print("FPI_mlon", FPI_mlon)
 		FPI_mcolat = 90-FPI_mlat
-		print("FPI_mcolat", FPI_mcolat)
-		
-		FPI_mcolats[i] = FPI_mcolat
-		FPI_mlons[i] = FPI_mlon
-		print("FPI_mcolats", FPI_mcolats)
-		print("FPI_mlons", FPI_mlons)
-		print("\n")
 		
 		if mlt == True:
 			FPI_mlon = coords.aacgm_to_mlt(FPI_mlon, dtime)*15
 			if isinstance(FPI_mlon, np.ndarray):
 				FPI_mlon = FPI_mlon[0]
-				
+			
+		FPI_mcolats[i] = FPI_mcolat
+		FPI_mlons[i] = FPI_mlon		
+			
 		ax.scatter(np.deg2rad(FPI_mlon), FPI_mcolat, marker="^", s=5)
 		ax.annotate(FPI_name, [np.deg2rad(FPI_mlon), FPI_mcolat])
-	
-	print("FPI_mcolats", FPI_mcolats)
-	print("FPI_mlons", FPI_mlons)
 	
 	###############################################
 	# calculate the change in dr/dtheta for vectors
@@ -181,12 +170,20 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	print("superDARN changes...")
 	dr, dtheta = tools.vector_change(mcolats, mlons, los_vs, kvecs)
 	
-	#FPI's and superDARN use opposite signs for kvectors so standardise
-	#FPI_kvecs = -FPI_kvecs
+	print("FPI_mcolats", FPI_mcolats)
+	print("FPI_mlons", FPI_mlons)
+	print("FPI_vels", FPI_vels)
+	print("FPI_kvecs", FPI_kvecs)
 	
-	print("FPI changes...")
 	if len(FPI_kvecs) > 0:
+		#FPI Kvecs are opposite to superdarn so standardise:
+		#FPI(-90=W, 90=E) superDARN(-90=E, 90=W)
+		print("standardising kvectors")
+		FPI_kvecs=-FPI_kvecs
 		FPI_dr, FPI_dtheta = tools.vector_change(FPI_mcolats, FPI_mlons, FPI_vels, FPI_kvecs)	
+	
+		print("FPI_dr", FPI_dr)
+		print("FPI_dtheta", FPI_dtheta)
 	
 	#################
 	# Make the Plot #
@@ -194,17 +191,22 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	
 		
 	if len(FPI_kvecs) > 0:
+		#we need to scale between both the FPI and velocity data
+		print("plotting FPI_vector")
 		#plot vectors
 		ax.quiver(np.deg2rad(FPI_mlons), FPI_mcolats, np.deg2rad(FPI_dtheta), FPI_dr, 
-			width=0.0045, color=cm(cNorm(los_vs)), angles="xy", 
+			width=0.0015, color="k", angles="xy", 
 			scale_units="xy", scale=1)	
 	
 	#plot vectors
+	print("plotting superDarn vectors")
 	ax.quiver(np.deg2rad(mlons), mcolats, np.deg2rad(dtheta), dr, 
 		width=0.0015, color=cm(cNorm(los_vs)), angles="xy", 
 		scale_units="xy", scale=1)
 	
 	plt.show()
+
+	print("\n")
 
 	return dr, dtheta
 	

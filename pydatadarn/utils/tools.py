@@ -228,7 +228,7 @@ def vector_change(mcolats, mlons, los_vs, kvecs):
 	"""
 	
 	#calculate scale length
-	vec_len = 2*500*abs(los_vs/6371e3)
+	vec_len = 2*500*np.cos(los_vs)/6371e3
 	
 	#obtain longitude and kvector in radians
 	lon_rad = np.deg2rad(mlons)
@@ -251,3 +251,19 @@ def vector_change(mcolats, mlons, los_vs, kvecs):
 	dtheta = np.rad2deg(vec_lon - np.deg2rad(mlons))
 	
 	return dr, dtheta
+
+def lon360_to_180(lon):
+	
+	"""
+	Converts the given longitude from 0->360 to -180->180 degrees
+	
+	Parameters
+	----------
+	
+	lon: float
+		longitude to convert
+	"""
+	
+	remainder = (lon+180) % 360
+	
+	return remainder - 180
