@@ -102,8 +102,8 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	ax.set_theta_offset(1.5*np.pi)
 	ax.set_xticks(np.linspace(0, 2*np.pi, 4, endpoint=False))
 
+	dtime = tools.time_to_dtime(time)
 	if mlt == True:
-		dtime = tools.time_to_dtime(time)
 		#convert mlons into mlts if so true
 		mlons = coords.aacgm_to_mlt(mlons, dtime)*15
 		ax.set_xticklabels(["00:00", "06:00", "12:00", "18:00"])
