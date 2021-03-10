@@ -134,7 +134,7 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		#ax.add_feature(cartopy.feature.LAKES)
 		#ax.add_feature(cartopy.feature.COASTLINE)
 		ax.set_global()
-		ax.coastlines(color="grey")
+		ax.coastlines(color="gray")
 		ax.gridlines()
 	
 	#Define normalised scale
@@ -197,14 +197,28 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 			ax.scatter(FPI_lon, FPI_lat, s=5, transform=ccrs.PlateCarree())
 			ax.text(FPI_lon, FPI_lat, FPI_name, transform=ccrs.PlateCarree())
 			
+	#####################################
+	### plot Heppner-Maynard Boundary ###
+	#####################################
 	
-	#plot Heppner-Maynard Boundary
 	if len(boundary_mlats) != len(boundary_mlons):
 		print("boundary_mlats and boundary_mlons must be the same length")
 		plt.close()
 		return
-	for i in range(len(boundary_mlats)):
+		
+	if cart == False:
+		if mlt == True:
+			boundary_mlons = coords.aacgm_to_mlt(boundary_mlons, dtime)*15
 		ax.plot(np.deg2rad(boundary_mlons), 90-boundary_mlats, color="k", linestyle="--")
+		
+	elif cart == True:
+		#convert hmb from aacgm to geographic
+		boundary_lats, boundary_lons, alt = aacgmv2.convert_latlon_arr(boundary_mlats, boundary_mlons, 0, dtime)
+		ax.plot(boundary_lons, boundary_lats, color="black", linestyle="--", transform=ccrs.PlateCarree())
+		ax.scatter(0, 60, transform=ccrs.PlateCarree())
+		ax.scatter(90, 60, transform=ccrs.PlateCarree())
+		print("boundary_lons", boundary_lons, "\n")
+		print("boundary_lats", boundary_lats, "\n")
 	
 	###############################################
 	# calculate the change in dr/dtheta for vectors
@@ -255,6 +269,7 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		lats_dr = lats_end-lats
 		
 		ax.scatter(lons, lats, color=cm(cNorm(los_vs)), s=5, transform=ccrs.PlateCarree())
+		print("lons", lons)
 		ax.quiver(lons, lats, dtheta, lats_dr, 
 			width=0.0015, color=cm(cNorm(los_vs)), angles="xy", 
 			scale_units="xy", headaxislength=0, transform=ccrs.PlateCarree())
