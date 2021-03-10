@@ -11,16 +11,19 @@ import matplotlib.pyplot as plt
 import datetime as dt
 import matplotlib as mpl
 import scipy.optimize as opt # for optimizing least square fit
+import cartopy.crs as ccrs
 
 from pydatadarn.classes.station import Station
 from pydatadarn.utils import tools as tools
 from pydatadarn.utils import coordinate_transformations as coords
 
 import fpipy
+import cartopy
+import aacgmv2
 
 def vector_plot(mcolats, mlons, kvecs, los_vs, time, 
-				station_names=[], FPI_names=[], FPI_kvecs=[], FPI_vels=[], 
-				mlt=True, mcolat_min=0, mcolat_max=50, theta_min=0, 
+				station_names=[], FPI_names=[], FPI_kvecs=[], FPI_vels=[], boundary_mlats=[], boundary_mlons=[], 
+				mlt=True, cart=False, mcolat_min=0, mcolat_max=50, theta_min=0, 
 				theta_max=360, cbar_min=-600, cbar_max=600):
 	
 	"""
@@ -61,10 +64,19 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		
 	FPI_vels (optional): str array
 		array of 2d neutral vector velocities (in same order as FPI_names)
+		
+	boundary_mlats (optional): float array
+		array of boundary_mlats (degrees)
+		
+	boundary_mlons (optional): float array
+		array of boundary_mlons (degrees)
 
 	mlt (optional): bool
 		sets whether to convert from magnetic longitude into local time 
-		(default false)
+		(default True)
+		
+	cart (optional): bool
+		sets whether to plot over a cartographic map (defualt false)
 	
 	mcolat_min: float
 		sets the minimum magnetic colatitude to be shown by the plot
@@ -94,25 +106,36 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	# Plot the vectors #
 	####################
 	
-	#create figure
-	fig, ax = plt.subplots(1, 1, figsize=(6, 6),subplot_kw=dict(
-		projection="polar"))
-	
-	#set plot
-	ax.set_theta_offset(1.5*np.pi)
-	ax.set_xticks(np.linspace(0, 2*np.pi, 4, endpoint=False))
-
 	dtime = tools.time_to_dtime(time)
-	if mlt == True:
-		#convert mlons into mlts if so true
-		mlons = coords.aacgm_to_mlt(mlons, dtime)*15
-		ax.set_xticklabels(["00:00", "06:00", "12:00", "18:00"])
+	
+	if cart == False:
+		#create figure
+		fig, ax = plt.subplots(1, 1, figsize=(6, 6),subplot_kw=dict(
+			projection="polar"))
 		
-	ax.set_rlabel_position(135)
-	ax.set_ylim(mcolat_min, mcolat_max)
-	ax.set_title("{} UT".format(time))
-	ax.set_thetamin(theta_min)
-	ax.set_thetamax(theta_max)
+		#set plot
+		ax.set_theta_offset(1.5*np.pi)
+		ax.set_xticks(np.linspace(0, 2*np.pi, 4, endpoint=False))
+	
+		if mlt == True:
+			#convert mlons into mlts if so true
+			mlons = coords.aacgm_to_mlt(mlons, dtime)*15
+			ax.set_xticklabels(["00:00", "06:00", "12:00", "18:00"])
+		
+		ax.set_rlabel_position(135)
+		ax.set_ylim(mcolat_min, mcolat_max)
+		ax.set_title("{} UT".format(time))
+		ax.set_thetamin(theta_min)
+		ax.set_thetamax(theta_max)
+	
+	elif cart == True:
+		
+		fig, ax = plt.subplots(1, 1, figsize=(6, 6),subplot_kw=dict(projection=ccrs.Orthographic(-90, 90)))
+		#ax.add_feature(cartopy.feature.LAKES)
+		#ax.add_feature(cartopy.feature.COASTLINE)
+		ax.set_global()
+		ax.coastlines(color="grey")
+		ax.gridlines()
 	
 	#Define normalised scale
 	cNorm = mpl.colors.Normalize(vmin=cbar_min, vmax=cbar_max)
@@ -124,44 +147,64 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	cb1 = mpl.colorbar.ColorbarBase(ax1, cmap=cm, norm=cNorm)
 	fig.subplots_adjust(left=0.05, right=0.85)
 	
-	#plot stations
+	#plot SuperDarn stations
 	for i in range(len(station_names)):
 		#get station data
 		station_name = station_names[i]
 		station_hdw = Station(station_name)
 		#get station mcolat and mlon
-		station_mlat, station_mlon =  station_hdw.get_aacgm(dtime)
+		station_mlat, station_mlon =  station_hdw.get_coords(dtime, aacgm=True)
 		station_mcolat = 90-station_mlat
 		
-		if mlt == True:
-			station_mlon = coords.aacgm_to_mlt(station_mlon, dtime)*15
-			if isinstance(station_mlon, np.ndarray):
-				station_mlon = station_mlon[0]
-				
-		ax.scatter(np.deg2rad(station_mlon), station_mcolat, 5)
-		ax.annotate(station_name, [np.deg2rad(station_mlon), station_mcolat])	
+		if cart == False:
+			if mlt == True:
+				station_mlon = coords.aacgm_to_mlt(station_mlon, dtime)*15
+				if isinstance(station_mlon, np.ndarray):
+					station_mlon = station_mlon[0]
+			ax.scatter(np.deg2rad(station_mlon), station_mcolat, s=5)
+			ax.annotate(station_name, [np.deg2rad(station_mlon), station_mcolat])	
+			
+		elif cart == True:
+			station_lat, station_lon = station_hdw.get_coords(dtime, aacgm=False)
+			station_colat = 90-station_lat
+			ax.scatter(station_lon, station_lat, s=5, transform=ccrs.PlateCarree())
+			ax.text(station_lon, station_lat, station_name, transform=ccrs.PlateCarree())
 		
 	FPI_mcolats = np.empty(len(FPI_names))
 	FPI_mlons = np.empty(len(FPI_names))	
 		
+	#plot FPI stations
 	for i in range(len(FPI_names)):
 		#get FPI data
 		FPI_name = FPI_names[i]
 		FPI_hdw = fpipy.FPIStation(FPI_name)
 		#get station mcolat and mlon
-		FPI_mlat, FPI_mlon = FPI_hdw.get_aacgm(dtime)
+		FPI_mlat, FPI_mlon = FPI_hdw.get_coords(dtime, aacgm=True)
 		FPI_mcolat = 90-FPI_mlat
 		
-		if mlt == True:
-			FPI_mlon = coords.aacgm_to_mlt(FPI_mlon, dtime)*15
-			if isinstance(FPI_mlon, np.ndarray):
-				FPI_mlon = FPI_mlon[0]
+		if cart == False:
+			if mlt == True:
+				FPI_mlon = coords.aacgm_to_mlt(FPI_mlon, dtime)*15
+				if isinstance(FPI_mlon, np.ndarray):
+					FPI_mlon = FPI_mlon[0]
+			FPI_mcolats[i] = FPI_mcolat
+			FPI_mlons[i] = FPI_mlon		
+			ax.scatter(np.deg2rad(FPI_mlon), FPI_mcolat, marker="^", s=5)
+			ax.annotate(FPI_name, [np.deg2rad(FPI_mlon), FPI_mcolat])
 			
-		FPI_mcolats[i] = FPI_mcolat
-		FPI_mlons[i] = FPI_mlon		
+		if cart == True:
+			FPI_lat, FPI_lon = FPI_hdw.get_coords(dtime, aacgm=False)
+			ax.scatter(FPI_lon, FPI_lat, s=5, transform=ccrs.PlateCarree())
+			ax.text(FPI_lon, FPI_lat, FPI_name, transform=ccrs.PlateCarree())
 			
-		ax.scatter(np.deg2rad(FPI_mlon), FPI_mcolat, marker="^", s=5)
-		ax.annotate(FPI_name, [np.deg2rad(FPI_mlon), FPI_mcolat])
+	
+	#plot Heppner-Maynard Boundary
+	if len(boundary_mlats) != len(boundary_mlons):
+		print("boundary_mlats and boundary_mlons must be the same length")
+		plt.close()
+		return
+	for i in range(len(boundary_mlats)):
+		ax.plot(np.deg2rad(boundary_mlons), 90-boundary_mlats, color="k", linestyle="--")
 	
 	###############################################
 	# calculate the change in dr/dtheta for vectors
@@ -185,7 +228,6 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	# Make the Plot #
 	#################
 	
-		
 	if len(FPI_kvecs) > 0:
 		#we need to scale between both the FPI and velocity data
 		print("plotting FPI_vector")
@@ -196,9 +238,26 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	
 	#plot vectors
 	print("plotting superDarn vectors")
-	ax.quiver(np.deg2rad(mlons), mcolats, np.deg2rad(dtheta), dr, 
-		width=0.0015, color=cm(cNorm(los_vs)), angles="xy", 
-		scale_units="xy", scale=1)
+	if cart == False:
+		ax.scatter(np.deg2rad(mlons), mcolats, color=cm(cNorm(los_vs)), s=5)
+		ax.quiver(np.deg2rad(mlons), mcolats, np.deg2rad(dtheta), dr, 
+			width=0.0015, color=cm(cNorm(los_vs)), angles="xy", 
+			scale_units="xy", scale=1, headaxislength=0)
+		
+	elif cart == True:
+		#convert aacgm mlons/mlats in geographic lons/lats
+		lats, lons, alts = aacgmv2.convert_latlon_arr(90-mcolats, mlons, 0, dtime, method_code="A2G")
+		colats = 90-lats
+		#our dr and dtheta have been calculated with respect to colatitude so
+		#calculate end of vectors with respect to latitude instead
+		colats_end = colats + dr
+		lats_end = 90-colats_end
+		lats_dr = lats_end-lats
+		
+		ax.scatter(lons, lats, color=cm(cNorm(los_vs)), s=5, transform=ccrs.PlateCarree())
+		ax.quiver(lons, lats, dtheta, lats_dr, 
+			width=0.0015, color=cm(cNorm(los_vs)), angles="xy", 
+			scale_units="xy", headaxislength=0, transform=ccrs.PlateCarree())
 	
 	plt.show()
 

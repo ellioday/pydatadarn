@@ -100,7 +100,7 @@ class Station():
 					dtime = datetime.datetime(year, 1, 1, 0, 0, 0) + datetime.timedelta(seconds=int(data[2]))
 					self.dtimes = np.append(self.dtimes, dtime)
 		
-	def get_aacgm(self, dtime):			
+	def get_coords(self, dtime, aacgm=True):			
 	
 		"""
 		Calculates and returns aacmgv2 coordinates for this radar from the
@@ -111,6 +111,10 @@ class Station():
 		
 		time: datetime object
 			datetime object of format datetime.datetime(YYYY, MM, DD, hh, mm, ss)
+			
+		aacgm: bool
+			if True, will return coordinates as aacgm. If false will return coordinates
+			as geographic (default=True)
 		"""
 	
 		#get first time in station metadata that is greater
@@ -121,11 +125,15 @@ class Station():
 		glon = self.glons[station_time_index]	
 		alt = self.alts[station_time_index]
 
-		#get mlat and mlon
-		mlat, mlon = coords.geo_to_aacgm(glat, glon, dtime, alt)
-		if isinstance(mlat, np.ndarray):
-			mlat = mlat[0]
-		if isinstance(mlon, np.ndarray):
-			mlon = mlon[0]
+		if aacgm == True:
+			#get mlat and mlon
+			mlat, mlon = coords.geo_to_aacgm(glat, glon, dtime, alt)
+			if isinstance(mlat, np.ndarray):
+				mlat = mlat[0]
+			if isinstance(mlon, np.ndarray):
+				mlon = mlon[0]
+			return mlat, mlon
 		
-		return mlat, mlon
+		else:
+			return glat, glon
+	
