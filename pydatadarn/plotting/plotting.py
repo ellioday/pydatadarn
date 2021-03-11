@@ -141,11 +141,13 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	#Define normalised scale
 	cNorm = mpl.colors.Normalize(vmin=cbar_min, vmax=cbar_max)
 
-	cm = mpl.cm.jet
+	cm = mpl.cm.colors.LinearSegmentedColormap.from_list("velocity_cmap",
+													  ["darkviolet", "blue", "darkturquoise", "aquamarine", "lime", "yellow", "darkorange", "red"], N=8)
 	#Create new axis at right hand side
 	ax1 = fig.add_axes([0.9, 0.1, 0.03, 0.8])
 	#plot colourmap in created axis
 	cb1 = mpl.colorbar.ColorbarBase(ax1, cmap=cm, norm=cNorm)
+	cb1.set_ticks(np.linspace(cbar_min, cbar_max, 9, endpoint=True))
 	fig.subplots_adjust(left=0.05, right=0.85)
 	
 	#plot SuperDarn stations
