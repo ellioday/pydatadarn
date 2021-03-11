@@ -124,7 +124,6 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		
 		ax.set_rlabel_position(135)
 		ax.set_ylim(mcolat_min, mcolat_max)
-		ax.set_title("{} UT".format(time))
 		ax.set_thetamin(theta_min)
 		ax.set_thetamax(theta_max)
 	
@@ -136,6 +135,8 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		ax.set_global()
 		ax.coastlines(color="gray")
 		ax.gridlines()
+	
+	ax.set_title("{} UT".format(time))
 	
 	#Define normalised scale
 	cNorm = mpl.colors.Normalize(vmin=cbar_min, vmax=cbar_max)
@@ -215,15 +216,15 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		
 	elif cart == True:
 		#convert hmb from aacgm to geographic
-		boundary_lats, boundary_lons, alt = aacgmv2.convert_latlon_arr(boundary_mlats, boundary_mlons, 0, dtime, method_code="A2G")
+		boundary_lats, boundary_lons, alt = aacgmv2.convert_latlon_arr(boundary_mlats, boundary_mlons, 150, dtime, method_code="A2G")
 		boundary_lons360 = boundary_lons % 360
 		#instead of resetting angle to 0 when angle > 2pi i.e. 0 < angle < 2pi
 		#carry it on (this is needed due to the way cartopy plots)
 		le360 = np.where((360-boundary_lons360) == min(360-boundary_lons360))[0][0]
 		boundary_lons360[le360+1:] += 360
 		ax.plot(boundary_lons360, boundary_lats, color="black", linestyle="--", transform=ccrs.PlateCarree())
-		test1lat, test1lon, test1alt = aacgmv2.convert_latlon(60, 0, 0, dtime)
-		test2lat, test2lon, test2alt = aacgmv2.convert_latlon(60, 90, 0, dtime)
+		test1lat, test1lon, test1alt = aacgmv2.convert_latlon(60, 0, 150, dtime)
+		test2lat, test2lon, test2alt = aacgmv2.convert_latlon(60, 90, 150, dtime)
 		ax.scatter(test1lon, test1lat, transform=ccrs.PlateCarree())
 		ax.scatter(test2lon, test2lat, transform=ccrs.PlateCarree())
 		print("boundary_lons", boundary_lons, "\n")
@@ -270,7 +271,7 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		
 	elif cart == True:
 		#convert aacgm mlons/mlats in geographic lons/lats
-		lats, lons, alts = aacgmv2.convert_latlon_arr(90-mcolats, mlons, 0, dtime, method_code="A2G")
+		lats, lons, alts = aacgmv2.convert_latlon_arr(90-mcolats, mlons, 150, dtime, method_code="A2G")
 		colats = 90-lats
 		#our dr and dtheta have been calculated with respect to colatitude so
 		#calculate end of vectors with respect to latitude instead
