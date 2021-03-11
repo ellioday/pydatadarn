@@ -22,7 +22,7 @@ import cartopy
 import aacgmv2
 
 def vector_plot(mcolats, mlons, kvecs, los_vs, time, 
-				station_names=[], FPI_names=[], FPI_kvecs=[], FPI_vels=[], boundary_mlats=[], boundary_mlons=[], 
+				station_names=[], FPI_names=[], FPI_kvecs=[], FPI_vels=[], boundary_mlats=np.array([]), boundary_mlons=np.array([]), 
 				mlt=True, cart=False, mcolat_min=0, mcolat_max=50, theta_min=0, 
 				theta_max=360, cbar_min=-600, cbar_max=600):
 	
@@ -130,7 +130,7 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	
 	elif cart == True:
 		
-		fig, ax = plt.subplots(1, 1, figsize=(6, 6),subplot_kw=dict(projection=ccrs.Orthographic(-90, 90)))
+		fig, ax = plt.subplots(1, 1, figsize=(6, 6),subplot_kw=dict(projection=ccrs.Orthographic(270, 90)))
 		#ax.add_feature(cartopy.feature.LAKES)
 		#ax.add_feature(cartopy.feature.COASTLINE)
 		ax.set_global()
@@ -210,14 +210,24 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		if mlt == True:
 			boundary_mlons = coords.aacgm_to_mlt(boundary_mlons, dtime)*15
 		ax.plot(np.deg2rad(boundary_mlons), 90-boundary_mlats, color="k", linestyle="--")
+		ax.scatter(np.deg2rad(0), 90-60)
+		ax.scatter(np.deg2rad(90), 90-60)
 		
 	elif cart == True:
 		#convert hmb from aacgm to geographic
-		boundary_lats, boundary_lons, alt = aacgmv2.convert_latlon_arr(boundary_mlats, boundary_mlons, 0, dtime)
-		ax.plot(boundary_lons, boundary_lats, color="black", linestyle="--", transform=ccrs.PlateCarree())
-		ax.scatter(0, 60, transform=ccrs.PlateCarree())
-		ax.scatter(90, 60, transform=ccrs.PlateCarree())
+		boundary_lats, boundary_lons, alt = aacgmv2.convert_latlon_arr(boundary_mlats, boundary_mlons, 0, dtime, method_code="A2G")
+		boundary_lons360 = boundary_lons % 360
+		#instead of resetting angle to 0 when angle > 2pi i.e. 0 < angle < 2pi
+		#carry it on (this is needed due to the way cartopy plots)
+		le360 = np.where((360-boundary_lons360) == min(360-boundary_lons360))[0][0]
+		boundary_lons360[le360+1:] += 360
+		ax.plot(boundary_lons360, boundary_lats, color="black", linestyle="--", transform=ccrs.PlateCarree())
+		test1lat, test1lon, test1alt = aacgmv2.convert_latlon(60, 0, 0, dtime)
+		test2lat, test2lon, test2alt = aacgmv2.convert_latlon(60, 90, 0, dtime)
+		ax.scatter(test1lon, test1lat, transform=ccrs.PlateCarree())
+		ax.scatter(test2lon, test2lat, transform=ccrs.PlateCarree())
 		print("boundary_lons", boundary_lons, "\n")
+		print("boundary_lons360", boundary_lons360, "\n")
 		print("boundary_lats", boundary_lats, "\n")
 	
 	###############################################
@@ -269,11 +279,11 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		lats_dr = lats_end-lats
 		
 		ax.scatter(lons, lats, color=cm(cNorm(los_vs)), s=5, transform=ccrs.PlateCarree())
-		print("lons", lons)
 		ax.quiver(lons, lats, dtheta, lats_dr, 
 			width=0.0015, color=cm(cNorm(los_vs)), angles="xy", 
 			scale_units="xy", headaxislength=0, transform=ccrs.PlateCarree())
-	
+		ax.stock_img()
+		
 	plt.show()
 
 	print("\n")
