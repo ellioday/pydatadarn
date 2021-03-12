@@ -258,12 +258,36 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	#################
 	
 	if len(FPI_kvecs) > 0:
-		#we need to scale between both the FPI and velocity data
 		print("plotting FPI_vector")
-		#plot vectors
-		ax.quiver(np.deg2rad(FPI_mlons), FPI_mcolats, np.deg2rad(FPI_dtheta), FPI_dr, 
-			width=0.0015, color="k", angles="xy", 
-			scale_units="xy", scale=1)	
+		if cart == False:
+			#plot vectors
+			ax.quiver(np.deg2rad(FPI_mlons), FPI_mcolats, np.deg2rad(FPI_dtheta), FPI_dr, 
+				width=0.0015, color="k", angles="xy", 
+				scale_units="xy", scale=1)	
+			
+		elif cart == True:
+			FPI_colat = 90-FPI_lat
+			#dr and dtheta have been calculated with respect to colatitude so
+			#calculate enf of vectors with respect to latitude instead
+			FPI_colat_end = FPI_colat + FPI_dr
+			FPI_lat_end = 90-FPI_colat_end
+			FPI_lat_dr = FPI_lat_end-FPI_lat
+			
+			if not isinstance(FPI_lat, np.ndarray):
+				FPI_lat = np.array([FPI_lat])
+			if not isinstance(FPI_lon, np.ndarray):
+				FPI_lon = np.array([FPI_lon])
+			if not isinstance(FPI_dr, np.ndarray):
+				FPI_dr = np.array([FPI_dr])
+			if not isinstance(FPI_dtheta, np.ndarray):
+				FPI_dtheta = np.array([FPI_dtheta])
+			
+			print("FPI_lat", FPI_lat)
+			
+			ax.scatter(FPI_lon, FPI_lat, color="black", s=5, transform=ccrs.PlateCarree())
+			ax.quiver(FPI_lon, FPI_lat, FPI_dtheta, FPI_lat_dr, width=0.0015,
+			 color="black", angles="xy", scale_units="xy", headaxislength=0,
+			 transform=ccrs.PlateCarree())
 	
 	#plot vectors
 	print("plotting superDarn vectors")
@@ -285,11 +309,6 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		
 		if not isinstance(dtheta, np.ndarray):
 			dtheta = np.array([dtheta])
-		
-		print("lons", lons)
-		print("lats", lats)
-		print("lats_dr", lats_dr)
-		print("dtheta", dtheta)
 		
 		ax.scatter(lons, lats, color=cm(cNorm(los_vs)), s=5, transform=ccrs.PlateCarree())
 		ax.quiver(lons, lats, dtheta, lats_dr, 
