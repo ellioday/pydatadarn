@@ -241,8 +241,11 @@ def vector_change(mcolats, mlons, los_vs, kvecs):
 	#find longitude of end of vector
 	cos_dlon = (np.cos(vec_len)-np.cos(vec_colat)*np.cos(colat))/(np.sin(vec_colat)*np.sin(colat))
 	delta_lon = np.arccos(cos_dlon)
-	for i in range(len(vec_azm)):
-		if vec_azm[i] < 0: delta_lon[i] = -delta_lon[i]
+	if isinstance(vec_azm, np.ndarray):
+		for i in range(len(vec_azm)):
+			if vec_azm[i] < 0: delta_lon[i] = -delta_lon[i]
+	else:
+		if vec_azm <0: delta_lon = -delta_lon
 	vec_lon = lon_rad+delta_lon
 	
 	#calculate change in colatitude and angle (both in degrees)

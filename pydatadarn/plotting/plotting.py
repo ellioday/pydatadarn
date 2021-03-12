@@ -24,7 +24,7 @@ import aacgmv2
 def vector_plot(mcolats, mlons, kvecs, los_vs, time, 
 				station_names=[], FPI_names=[], FPI_kvecs=[], FPI_vels=[], boundary_mlats=np.array([]), boundary_mlons=np.array([]), 
 				mlt=True, cart=False, mcolat_min=0, mcolat_max=50, theta_min=0, 
-				theta_max=360, cbar_min=-600, cbar_max=600):
+				theta_max=360, cbar_min=0, cbar_max=100):
 	
 	"""
 	Creates a polar plot of line of sight vectors
@@ -204,40 +204,42 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	### plot Heppner-Maynard Boundary ###
 	#####################################
 	
-	if len(boundary_mlats) != len(boundary_mlons):
-		print("boundary_mlats and boundary_mlons must be the same length")
-		plt.close()
-		return
-		
-	if cart == False:
-		if mlt == True:
-			boundary_mlons = coords.aacgm_to_mlt(boundary_mlons, dtime)*15
-		ax.plot(np.deg2rad(boundary_mlons), 90-boundary_mlats, color="k", linestyle="--")
-		ax.scatter(np.deg2rad(0), 90-60)
-		ax.scatter(np.deg2rad(90), 90-60)
-		
-	elif cart == True:
-		#convert hmb from aacgm to geographic
-		boundary_lats, boundary_lons, alt = aacgmv2.convert_latlon_arr(boundary_mlats, boundary_mlons, 150, dtime, method_code="A2G")
-		boundary_lons360 = boundary_lons % 360
-		#instead of resetting angle to 0 when angle > 2pi i.e. 0 < angle < 2pi
-		#carry it on (this is needed due to the way cartopy plots)
-		le360 = np.where((360-boundary_lons360) == min(360-boundary_lons360))[0][0]
-		boundary_lons360[le360+1:] += 360
-		ax.plot(boundary_lons360, boundary_lats, color="black", linestyle="--", transform=ccrs.PlateCarree())
-		test1lat, test1lon, test1alt = aacgmv2.convert_latlon(60, 0, 150, dtime)
-		test2lat, test2lon, test2alt = aacgmv2.convert_latlon(60, 90, 150, dtime)
-		ax.scatter(test1lon, test1lat, transform=ccrs.PlateCarree())
-		ax.scatter(test2lon, test2lat, transform=ccrs.PlateCarree())
-		print("boundary_lons", boundary_lons, "\n")
-		print("boundary_lons360", boundary_lons360, "\n")
-		print("boundary_lats", boundary_lats, "\n")
+	if len(boundary_mlats) > 0:
 	
+		if len(boundary_mlats) != len(boundary_mlons):
+			print("boundary_mlats and boundary_mlons must be the same length")
+			plt.close()
+			return
+			
+		if cart == False:
+			if mlt == True:
+				boundary_mlons = coords.aacgm_to_mlt(boundary_mlons, dtime)*15
+			ax.plot(np.deg2rad(boundary_mlons), 90-boundary_mlats, color="k", linestyle="--")
+			ax.scatter(np.deg2rad(0), 90-60)
+			ax.scatter(np.deg2rad(90), 90-60)
+			
+		elif cart == True:
+			#convert hmb from aacgm to geographic
+			boundary_lats, boundary_lons, alt = aacgmv2.convert_latlon_arr(boundary_mlats, boundary_mlons, np.zeros(len(boundary_mlats))+150, dtime, method_code="A2G")
+			boundary_lons360 = boundary_lons % 360
+			#instead of resetting angle to 0 when angle > 2pi i.e. 0 < angle < 2pi
+			#carry it on (this is needed due to the way cartopy plots)
+			le360 = np.where((360-boundary_lons360) == min(360-boundary_lons360))[0][0]
+			boundary_lons360[le360+1:] += 360
+			ax.plot(boundary_lons360, boundary_lats, color="black", linestyle="--", transform=ccrs.PlateCarree())
+			print("boundary_lons", boundary_lons, "\n")
+			print("boundary_lons360", boundary_lons360, "\n")
+			print("boundary_lats", boundary_lats, "\n")
+		
 	###############################################
 	# calculate the change in dr/dtheta for vectors
 	##############################################
 	
 	print("superDARN changes...")
+	print("mcolats", mcolats)
+	print("mlons", mlons)
+	print("los_vs", los_vs)
+	print("kvecs", kvecs)
 	dr, dtheta = tools.vector_change(mcolats, mlons, los_vs, kvecs)
 	
 	print("FPI_mcolats", FPI_mcolats)
@@ -280,6 +282,14 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		colats_end = colats + dr
 		lats_end = 90-colats_end
 		lats_dr = lats_end-lats
+		
+		if not isinstance(dtheta, np.ndarray):
+			dtheta = np.array([dtheta])
+		
+		print("lons", lons)
+		print("lats", lats)
+		print("lats_dr", lats_dr)
+		print("dtheta", dtheta)
 		
 		ax.scatter(lons, lats, color=cm(cNorm(los_vs)), s=5, transform=ccrs.PlateCarree())
 		ax.quiver(lons, lats, dtheta, lats_dr, 
