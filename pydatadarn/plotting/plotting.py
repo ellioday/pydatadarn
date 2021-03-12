@@ -24,7 +24,7 @@ import aacgmv2
 def vector_plot(mcolats, mlons, kvecs, los_vs, time, 
 				station_names=[], FPI_names=[], FPI_kvecs=[], FPI_vels=[], boundary_mlats=np.array([]), boundary_mlons=np.array([]), 
 				mlt=True, cart=False, mcolat_min=0, mcolat_max=50, theta_min=0, 
-				theta_max=360, cbar_min=0, cbar_max=1000):
+				theta_max=360, cbar_min=0, cbar_max=1000, save=False):
 	
 	"""
 	Creates a polar plot of line of sight vectors
@@ -100,6 +100,9 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	cbar_max: float
 		sets the maximum value for the colourbar (default 600 m/s)
 		
+	save (optional): bool
+		will save figures in path given by save (default false)
+		
 	"""
 	
 	####################
@@ -110,7 +113,7 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	
 	if cart == False:
 		#create figure
-		fig, ax = plt.subplots(1, 1, figsize=(6, 6),subplot_kw=dict(
+		fig, ax = plt.subplots(1, 1, figsize=(14, 14),subplot_kw=dict(
 			projection="polar"))
 		
 		#set plot
@@ -129,12 +132,13 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	
 	elif cart == True:
 		
-		fig, ax = plt.subplots(1, 1, figsize=(6, 6),subplot_kw=dict(projection=ccrs.Orthographic(270, 90)))
+		fig, ax = plt.subplots(1, 1, figsize=(20, 20),subplot_kw=dict(projection=ccrs.Orthographic(270, 90)))
 		#ax.add_feature(cartopy.feature.LAKES)
 		#ax.add_feature(cartopy.feature.COASTLINE)
 		ax.set_global()
 		ax.coastlines(color="gray")
 		ax.gridlines()
+		ax.set_extent([-125, -65, 30, 90])
 	
 	ax.set_title("{} UT".format(time))
 	
@@ -316,7 +320,11 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 			scale_units="xy", headaxislength=0, transform=ccrs.PlateCarree())
 		ax.stock_img()
 		
-	plt.show()
+	if save == False:	
+		plt.show()
+	else:
+		plt.savefig("{}{}{}_{}{}{}_Convection_map.png".format(time[0:4], time[5:7], time[8:10], time[11:13], time[14:16], time[17:19]))
+		plt.close()
 
 	print("\n")
 
