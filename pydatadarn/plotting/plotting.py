@@ -24,7 +24,7 @@ import aacgmv2
 def vector_plot(mcolats, mlons, kvecs, los_vs, time, 
 				station_names=[], FPI_names=[], FPI_kvecs=[], FPI_vels=[], boundary_mlats=np.array([]), boundary_mlons=np.array([]), 
 				mlt=True, cart=False, mcolat_min=0, mcolat_max=50, theta_min=0, 
-				theta_max=360, cbar_min=0, cbar_max=100):
+				theta_max=360, cbar_min=0, cbar_max=1000):
 	
 	"""
 	Creates a polar plot of line of sight vectors
