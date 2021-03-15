@@ -24,7 +24,7 @@ import aacgmv2
 def vector_plot(mcolats, mlons, kvecs, los_vs, time, 
 				station_names=[], FPI_names=[], FPI_kvecs=[], FPI_vels=[], boundary_mlats=np.array([]), boundary_mlons=np.array([]), 
 				mlt=True, cart=False, mcolat_min=0, mcolat_max=50, theta_min=0, 
-				theta_max=360, cbar_min=0, cbar_max=1000, save=False):
+				theta_max=360, cbar_min=0, cbar_max=1000, save=False, los=False):
 	
 	"""
 	Creates a polar plot of line of sight vectors
@@ -102,6 +102,9 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		
 	save (optional): bool
 		will save figures in path given by save (default false)
+		
+	los (optional): bool
+		if true will save figures with los appended to name	(default false)
 		
 	"""
 	
@@ -323,8 +326,13 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	if save == False:	
 		plt.show()
 	else:
-		plt.savefig("{}{}{}_{}{}{}_Convection_map.png".format(time[0:4], time[5:7], time[8:10], time[11:13], time[14:16], time[17:19]))
-		plt.close()
+		
+		if los == False:
+			plt.savefig("{}{}{}_{}{}{}_Convection_map.png".format(time[0:4], time[5:7], time[8:10], time[11:13], time[14:16], time[17:19]))
+			plt.close()
+		else:
+			plt.savefig("{}{}{}_{}{}{}_Convection_map_LOS.png".format(time[0:4], time[5:7], time[8:10], time[11:13], time[14:16], time[17:19]))
+			plt.close()
 
 	print("\n")
 
