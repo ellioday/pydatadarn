@@ -1,6 +1,5 @@
 import numpy as np
-from pydatadarn.utils import tools
-from pydatadarn.utils import coordinate_transformations as coords
+import elliotools
 import os
 import datetime
 
@@ -127,7 +126,7 @@ class Station():
 
 		if aacgm == True:
 			#get mlat and mlon
-			mlat, mlon = coords.geo_to_aacgm(glat, glon, dtime, alt)
+			mlat, mlon = elliotools.geo_to_aacgm(glat, glon, dtime, alt)
 			if isinstance(mlat, np.ndarray):
 				mlat = mlat[0]
 			if isinstance(mlon, np.ndarray):

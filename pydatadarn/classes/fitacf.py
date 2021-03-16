@@ -9,17 +9,10 @@ Created on Thu Nov  5 04:17:39 2020
 import os
 import pydarn
 import bz2
-
-import scipy.optimize as opt # for optimizing least square fit
+import elliotools
 
 import numpy as np
 import datetime as dt
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-
-from pydatadarn.utils import tools
-from pydatadarn.utils import coordinate_transformations as coords
-from pydatadarn.classes.station import Station
 
 #get path to superdarn data
 superdarn_data_path = open("/home/elliott/Documents/python_analysis/superdarn_data_path.txt", "r")
@@ -58,8 +51,8 @@ class LoadFitacf:
 		YY = [int(start_date[0:4]), int(end_date[0:4])]
 	
 		#convert time to dtime
-		start_dtime = tools.time_to_dtime(start_date)
-		end_dtime = tools.time_to_dtime(end_date)
+		start_dtime = elliotools.time_to_dtime(start_date)
+		end_dtime = elliotools.time_to_dtime(end_date)
 	
 		self.path = "{}{}/{}/".format(fitacf_path, station, YY[0])	
 		
@@ -96,7 +89,7 @@ class LoadFitacf:
 			file_ss = int(files[i][14:16])
 			file_time = "{:04d}/{:02d}/{:02d} {:02d}:{:02d}:{:02d}.".format(
 				file_YY, file_MM, file_DD, file_HH, file_mm, file_ss)
-			file_dtime = tools.time_to_dtime(file_time)
+			file_dtime = elliotools.time_to_dtime(file_time)
 			
 			#print("file date = {:02d}/{:02d}/{:02d}.{:02d}.{:02d}".format(file_MM, file_DD, file_HH, file_mm, file_ss))
 			

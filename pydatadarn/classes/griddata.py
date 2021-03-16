@@ -9,13 +9,10 @@ Created on Thu Nov  5 04:17:39 2020
 import os
 import pydarn
 import bz2
+import elliotools
 
 import numpy as np
 import datetime as dt
-
-from pydatadarn.utils import tools
-from pydatadarn.utils import coordinate_transformations as coords
-from pydatadarn.classes.station import Station
 
 #get path to superdarn data
 luna_path_file = open("/home/elliott/Documents/python_analysis/luna_path.txt", "r")
@@ -347,7 +344,7 @@ class GridData():
 							#get station magnetic coordinates
 							station_mlat, station_mlon = station.get_aacgm(dtime)
 							#get look direction
-							look_direction = tools.lon_look(station_mlon, mlons[i])	
+							look_direction = elliotools.lon_look(station_mlon, mlons[i])	
 							look = np.append(look, look_direction)	
 					
 					print("start_dtime", start_dtime)
@@ -430,11 +427,11 @@ class GridData():
 			los_vs_rad_point = self.los_vs[i]
 			
 			#get vector azms
-			vec_azm = tools.cosine_rule([0, 0], [vec_mcolat, vec_mlon], [radar_mcolat, radar_mlon], polar=True)
+			vec_azm = elliotools.cosine_rule([0, 0], [vec_mcolat, vec_mlon], [radar_mcolat, radar_mlon], polar=True)
 			#get radar azms
-			radar_azm = tools.cosine_rule([0, 0], [radar_mcolat, radar_mlon], [vec_mcolat, vec_mlon], polar=True)
+			radar_azm = elliotools.cosine_rule([0, 0], [radar_mcolat, radar_mlon], [vec_mcolat, vec_mlon], polar=True)
 			#get look direction from radar to los measurement
-			radar_look = tools.lon_look(radar_mlon, vec_mlon)
+			radar_look = elliotools.lon_look(radar_mlon, vec_mlon)
 			
 			if radar_look == "E":
 				radar_azm = -radar_azm
@@ -460,7 +457,7 @@ class GridData():
 						 self.vec_azms[i] += 180				
 			
 		#restrict azimuths between -90 and 90 degrees
-		self.vec_azms = tools.sin9090(self.vec_azms)
+		self.vec_azms = elliotools.sin9090(self.vec_azms)
 		
 		return
 	
@@ -555,3 +552,8 @@ class GridData():
 			data_dict["lat_shft"] = self.lat_shft[time]			 
 		
 		return data_dict
+	
+	def spherical_fit(self, time):
+		
+		return
+	

@@ -13,18 +13,18 @@ import matplotlib as mpl
 import scipy.optimize as opt # for optimizing least square fit
 import cartopy.crs as ccrs
 
-from pydatadarn.classes.station import Station
-from pydatadarn.utils import tools as tools
-from pydatadarn.utils import coordinate_transformations as coords
+
+import elliotools
 
 import fpipy
 import cartopy
 import aacgmv2
+import pydatadarn
 
 def vector_plot(mcolats, mlons, kvecs, los_vs, time, 
 				station_names=[], FPI_names=[], FPI_kvecs=[], FPI_vels=[], boundary_mlats=np.array([]), boundary_mlons=np.array([]), 
-				mlt=True, cart=False, mcolat_min=0, mcolat_max=50, theta_min=0, 
-				theta_max=360, cbar_min=0, cbar_max=1000, save=False, los=False):
+				mlt=True, cart=False, colat_min=0, colat_max=50, lon_min=0, 
+				lon_max=360, cbar_min=0, cbar_max=1000, save=False, los=False):
 	
 	"""
 	Creates a polar plot of line of sight vectors
@@ -112,7 +112,7 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	# Plot the vectors #
 	####################
 	
-	dtime = tools.time_to_dtime(time)
+	dtime = elliotools.time_to_dtime(time)
 	
 	if cart == False:
 		#create figure
@@ -125,13 +125,13 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	
 		if mlt == True:
 			#convert mlons into mlts if so true
-			mlons = coords.aacgm_to_mlt(mlons, dtime)*15
+			mlons = elliotools.aacgm_to_mlt(mlons, dtime)*15
 			ax.set_xticklabels(["00:00", "06:00", "12:00", "18:00"])
 		
 		ax.set_rlabel_position(135)
-		ax.set_ylim(mcolat_min, mcolat_max)
-		ax.set_thetamin(theta_min)
-		ax.set_thetamax(theta_max)
+		ax.set_ylim(colat_min, colat_max)
+		ax.set_thetamin(lon_min)
+		ax.set_thetamax(lon_max)
 	
 	elif cart == True:
 		
@@ -141,7 +141,7 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		ax.set_global()
 		ax.coastlines(color="gray")
 		ax.gridlines()
-		ax.set_extent([-125, -65, 30, 90])
+		ax.set_extent([lon_min, lon_max, 90-colat_min, 90-colat_max])
 	
 	ax.set_title("{} UT".format(time))
 	
@@ -161,14 +161,14 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	for i in range(len(station_names)):
 		#get station data
 		station_name = station_names[i]
-		station_hdw = Station(station_name)
+		station_hdw = pydatadarn.Station(station_name)
 		#get station mcolat and mlon
 		station_mlat, station_mlon =  station_hdw.get_coords(dtime, aacgm=True)
 		station_mcolat = 90-station_mlat
 		
 		if cart == False:
 			if mlt == True:
-				station_mlon = coords.aacgm_to_mlt(station_mlon, dtime)*15
+				station_mlon = elliotools.aacgm_to_mlt(station_mlon, dtime)*15
 				if isinstance(station_mlon, np.ndarray):
 					station_mlon = station_mlon[0]
 			ax.scatter(np.deg2rad(station_mlon), station_mcolat, s=5)
@@ -194,7 +194,7 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		
 		if cart == False:
 			if mlt == True:
-				FPI_mlon = coords.aacgm_to_mlt(FPI_mlon, dtime)*15
+				FPI_mlon = elliotools.aacgm_to_mlt(FPI_mlon, dtime)*15
 				if isinstance(FPI_mlon, np.ndarray):
 					FPI_mlon = FPI_mlon[0]
 			FPI_mcolats[i] = FPI_mcolat
@@ -220,7 +220,7 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 			
 		if cart == False:
 			if mlt == True:
-				boundary_mlons = coords.aacgm_to_mlt(boundary_mlons, dtime)*15
+				boundary_mlons = elliotools.aacgm_to_mlt(boundary_mlons, dtime)*15
 			ax.plot(np.deg2rad(boundary_mlons), 90-boundary_mlats, color="k", linestyle="--")
 			ax.scatter(np.deg2rad(0), 90-60)
 			ax.scatter(np.deg2rad(90), 90-60)
@@ -234,28 +234,28 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 			le360 = np.where((360-boundary_lons360) == min(360-boundary_lons360))[0][0]
 			boundary_lons360[le360+1:] += 360
 			ax.plot(boundary_lons360, boundary_lats, color="black", linestyle="--", transform=ccrs.PlateCarree())
-			print("boundary_lons", boundary_lons, "\n")
-			print("boundary_lons360", boundary_lons360, "\n")
-			print("boundary_lats", boundary_lats, "\n")
+			#print("boundary_lons", boundary_lons, "\n")
+			#print("boundary_lons360", boundary_lons360, "\n")
+			#print("boundary_lats", boundary_lats, "\n")
 		
 	###############################################
 	# calculate the change in dr/dtheta for vectors
 	##############################################
 	
-	print("superDARN changes...")
-	print("mcolats", mcolats)
-	print("mlons", mlons)
-	print("los_vs", los_vs)
-	print("kvecs", kvecs)
-	dr, dtheta = tools.vector_change(mcolats, mlons, los_vs, kvecs)
+	#print("superDARN changes...")
+	#print("mcolats", mcolats)
+	#print("mlons", mlons)
+	#print("los_vs", los_vs)
+	#print("kvecs", kvecs)
+	dr, dtheta = elliotools.vector_change(mcolats, mlons, los_vs, kvecs)
 	
-	print("FPI_mcolats", FPI_mcolats)
-	print("FPI_mlons", FPI_mlons)
-	print("FPI_vels", FPI_vels)
-	print("FPI_kvecs", FPI_kvecs)
+	#print("FPI_mcolats", FPI_mcolats)
+	#print("FPI_mlons", FPI_mlons)
+	#print("FPI_vels", FPI_vels)
+	#print("FPI_kvecs", FPI_kvecs)
 	
 	if len(FPI_kvecs) > 0:
-		FPI_dr, FPI_dtheta = tools.vector_change(FPI_mcolats, FPI_mlons, FPI_vels, FPI_kvecs)	
+		FPI_dr, FPI_dtheta = elliotools.vector_change(FPI_mcolats, FPI_mlons, FPI_vels, FPI_kvecs)	
 	
 		print("FPI_dr", FPI_dr)
 		print("FPI_dtheta", FPI_dtheta)
@@ -379,23 +379,23 @@ def los_fit(azimuths, los_vs, time, resolution=100, mcolat_range=False, station_
 	x_series = np.linspace(-180, 180, resolution, endpoint=True)
 	
 	#calculate rms for initial/guessed amplitude
-	rms = tools.rms(los_vs)
+	rms = elliotools.rms(los_vs)
 	amp = rms*(2**0.5)
 	
 	#make the initial fit
 	A = np.median(los_vs)
 	B = amp
 	phi = 0
-	trial = tools.sin(np.deg2rad(x_series), A, B, phi)
+	trial = elliotools.sin(np.deg2rad(x_series), A, B, phi)
 	#optimise our fit
 	
 	#params = median velocity, amplitude, phase shift
 	params = [A, B, phi]
-	w, _ = opt.curve_fit(tools.sin, np.deg2rad(azimuths), 
+	w, _ = opt.curve_fit(elliotools.sin, np.deg2rad(azimuths), 
 					  los_vs, params, maxfev=50000)
 	#print("Initial parameters = {}".format(params))
 	#print("Estimated parameters = {}\n".format(self.w))
-	fit = tools.sin(np.deg2rad(x_series), *w)
+	fit = elliotools.sin(np.deg2rad(x_series), *w)
 	
 	if plot:		
 		
