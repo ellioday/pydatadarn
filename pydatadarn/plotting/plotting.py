@@ -326,13 +326,14 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	if save == False:	
 		plt.show()
 	else:
-		
+		print("saving")
 		if los == False:
 			plt.savefig("{}{}{}_{}{}{}_Convection_map.png".format(time[0:4], time[5:7], time[8:10], time[11:13], time[14:16], time[17:19]))
 			plt.close()
 		else:
 			plt.savefig("{}{}{}_{}{}{}_Convection_map_LOS.png".format(time[0:4], time[5:7], time[8:10], time[11:13], time[14:16], time[17:19]))
 			plt.close()
+		print("done")
 
 	print("\n")
 
