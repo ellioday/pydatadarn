@@ -23,8 +23,7 @@ import pydatadarn
 
 def vector_plot(mcolats, mlons, kvecs, los_vs, time, 
 				station_names=[], FPI_names=[], FPI_kvecs=[], FPI_vels=[], boundary_mlats=np.array([]), boundary_mlons=np.array([]), 
-				mlt=True, cart=False, colat_min=0, colat_max=50, lon_min=0, 
-				lon_max=360, cbar_min=0, cbar_max=1000, save=False, los=False):
+				mlt=True, cart=False, colat_range=[0, 50], lon_range=[0, 360], cbar_min=0, cbar_max=1000, save=False, los=False, set_extent=False):
 	
 	"""
 	Creates a polar plot of line of sight vectors
@@ -106,6 +105,9 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	los (optional): bool
 		if true will save figures with los appended to name	(default false)
 		
+	set_extent(optional): bool
+		if true will limit the plot between colat_range and lon_range
+		
 	"""
 	
 	####################
@@ -129,9 +131,9 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 			ax.set_xticklabels(["00:00", "06:00", "12:00", "18:00"])
 		
 		ax.set_rlabel_position(135)
-		ax.set_ylim(colat_min, colat_max)
-		ax.set_thetamin(lon_min)
-		ax.set_thetamax(lon_max)
+		ax.set_ylim(colat_range[0], colat_range[1])
+		ax.set_thetamin(lon_range[0])
+		ax.set_thetamax(lon_range[1])
 	
 	elif cart == True:
 		
@@ -141,7 +143,8 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 		ax.set_global()
 		ax.coastlines(color="gray")
 		ax.gridlines()
-		ax.set_extent([lon_min, lon_max, 90-colat_min, 90-colat_max])
+		if set_extent == True:
+			ax.set_extent([lon_range[0], lon_range[1], 90-colat_range[0], 90-colat_range[1]])#, crs=ccrs.Orthographic())
 	
 	ax.set_title("{} UT".format(time))
 	
@@ -326,12 +329,13 @@ def vector_plot(mcolats, mlons, kvecs, los_vs, time,
 	if save == False:	
 		plt.show()
 	else:
+		save_path=save
 		print("saving")
 		if los == False:
-			plt.savefig("{}{}{}_{}{}{}_Convection_map.png".format(time[0:4], time[5:7], time[8:10], time[11:13], time[14:16], time[17:19]))
+			plt.savefig("{}{}{}{}_{}{}{}_Convection_map.png".format(save_path, time[0:4], time[5:7], time[8:10], time[11:13], time[14:16], time[17:19]))
 			plt.close()
 		else:
-			plt.savefig("{}{}{}_{}{}{}_Convection_map_LOS.png".format(time[0:4], time[5:7], time[8:10], time[11:13], time[14:16], time[17:19]))
+			plt.savefig("{}{}{}{}_{}{}{}_Convection_map_LOS.png".format(save_path, time[0:4], time[5:7], time[8:10], time[11:13], time[14:16], time[17:19]))
 			plt.close()
 		print("done")
 
